@@ -14,8 +14,8 @@ const CATEGORY_NAMES = {
     other: '📦 Прочее'
 };
 
-// МЕТОД 1: Отрисовка полок (добавлены data-атрибуты к кнопкам)
-export function renderFridgeContents(batches, currentRole) {
+// ОБРАТИТЕ ВНИМАНИЕ: Теперь мы передаем объект perms (permissions - права)
+export function renderFridgeContents(batches, perms) {
     const shelvesContainer = document.getElementById('fridge-shelves');
     const warningList = document.getElementById('warning-list');
     const warningZone = document.getElementById('warning-zone');
@@ -34,7 +34,6 @@ export function renderFridgeContents(batches, currentRole) {
     batches.forEach(batch => {
         const badge = getStatusBadge(batch.daysLeft);
 
-        // ВНИМАНИЕ: В тегах <button> мы добавили data-id="${batch.id}" и data-action
         const cardHTML = `
             <div class="bg-white border border-slate-100 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center shadow-sm hover:shadow-md transition gap-4">
                 <div>
@@ -51,12 +50,16 @@ export function renderFridgeContents(batches, currentRole) {
                     </div>
                     
                     <div class="flex flex-col gap-2">
-                        <!-- Кнопка Взять. data-action="consume" -->
-                        <button class="bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold py-1.5 px-3 rounded transition" 
-                                data-id="${batch.id}" data-action="consume">➖ Взять</button>
+                        <!-- Динамическое рисование кнопок на основе переданных прав (perms) -->
                         
-                        <!-- Кнопка Списать. data-action="waste" -->
-                        ${currentRole !== 'child' ? `
+                        <!-- Если у текущей роли есть право canTake, рисуем кнопку Взять -->
+                        ${perms.canTake ? `
+                            <button class="bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold py-1.5 px-3 rounded transition" 
+                                    data-id="${batch.id}" data-action="consume">➖ Взять</button>
+                        ` : ''}
+                        
+                        <!-- Если у текущей роли есть право canWaste, рисуем кнопку Списать -->
+                        ${perms.canWaste ? `
                             <button class="bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold py-1.5 px-3 rounded transition" 
                                     data-id="${batch.id}" data-action="waste">🗑 Списать</button>
                         ` : ''}
@@ -80,12 +83,7 @@ export function renderFridgeContents(batches, currentRole) {
     }
 }
 
-// ================= НОВАЯ ФУНКЦИЯ =================
-// МЕТОД 2: Отрисовка цифр в панели статистики
 export function renderAnalytics(stats) {
-    // Находим HTML-элементы и меняем в них текст (.textContent)
-    // .toFixed(1) оставляет только 1 знак после запятой (например 1.5),
-    // а .toFixed(0) убирает копейки из рублей.
     document.getElementById('stat-consumed').textContent = stats.consumed.toFixed(1);
     document.getElementById('stat-wasted').textContent = stats.wasted.toFixed(1);
     document.getElementById('stat-money').textContent = stats.moneyLost.toFixed(0);

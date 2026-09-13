@@ -1,101 +1,171 @@
 // ==============================================================================
 // ФАЙЛ: js/app.js
 // НАЗНАЧЕНИЕ: Главный Контроллер (Controller).
-// Связывает интерфейс (HTML) с бизнес-логикой и отрисовкой.
 // ==============================================================================
 
-// 1. ИМПОРТЫ
 import { FridgeModel } from './models/Fridge.js';
-import { AnalyticsModel } from './models/Analytics.js'; // Импортируем Аналитику
-import { renderFridgeContents, renderAnalytics } from './ui/render.js'; // Импортируем новую функцию отрисовки
+import { AnalyticsModel } from './models/Analytics.js';
+import { renderFridgeContents, renderAnalytics } from './ui/render.js';
 import { validateProductData } from './utils/helpers.js';
 
-// 2. ИНИЦИАЛИЗАЦИЯ
-const fridge = new FridgeModel();
-const analytics = new AnalyticsModel(); // Создаем объект Аналитики
-let currentRole = 'parent';
+// ================= СИСТЕМА БЕЗОПАСНОСТИ =================
 
-// 3. ПОИСК ЭЛЕМЕНТОВ НА СТРАНИЦЕ (DOM)
+// 1. БАЗА ПАРОЛЕЙ (Аутентификация)
+// В реальном мире это хранится на сервере в зашифрованном виде.
+const PASSWORDS = {
+    admin: 'admin2026', // Пароль для Админа
+    user: '1234'        // Пароль для Пользователя
+};
+
+// 2. МАТРИЦА ПРАВ (Авторизация / RBAC)
+const PERMISSIONS = {
+    admin: { canAdd: true, canTake: true, canWaste: true, canSeeAnalytics: true, canSeeAdmin: true, canManageRights: true },
+    user:  { canAdd: true, canTake: true, canWaste: true, canSeeAnalytics: true, canSeeAdmin: false, canManageRights: true },
+    guest: { canAdd: true, canTake: false, canWaste: false, canSeeAnalytics: false, canSeeAdmin: false, canManageRights: false },
+    child: { canAdd: false, canTake: false, canWaste: false, canSeeAnalytics: false, canSeeAdmin: false, canManageRights: false }
+};
+
+const fridge = new FridgeModel();
+const analytics = new AnalyticsModel();
+
+// Начинаем как Гость (чтобы при открытии программы никто не имел полных прав без пароля)
+let currentRole = 'guest';
+
+// ПОИСК ЭЛЕМЕНТОВ (DOM)
 const roleSelector = document.getElementById('role-selector');
 const adminPanel = document.getElementById('admin-panel');
+const rightsPanel = document.getElementById('rights-panel');
+const analyticsPanel = document.getElementById('analytics-panel');
 const addFormPanel = document.getElementById('add-form-panel');
 const btnAdd = document.getElementById('btn-add');
 const inputUnit = document.getElementById('p-unit');
 const inputCount = document.getElementById('p-count');
 
-// 4. ФУНКЦИЯ ОБНОВЛЕНИЯ ЭКРАНА
-function updateUI() {
-    // 1. Рисуем полки
-    const batches = fridge.getProcessedBatches();
-    renderFridgeContents(batches, currentRole);
+// Чекбоксы делегирования прав
+const chkGuestTake = document.getElementById('perm-guest-take');
+const chkGuestWaste = document.getElementById('perm-guest-waste');
+const chkChildTake = document.getElementById('perm-child-take');
 
-    // 2. Рисуем статистику
+// Устанавливаем в выпадающем списке стартовую роль (чтобы интерфейс совпадал с переменной)
+roleSelector.value = currentRole;
+
+// ------------------------------------------------------------------------------
+// ФУНКЦИЯ ОБНОВЛЕНИЯ ЭКРАНА
+// ------------------------------------------------------------------------------
+function updateUI() {
+    const perms = PERMISSIONS[currentRole];
+
+    adminPanel.classList.toggle('hidden', !perms.canSeeAdmin);
+    rightsPanel.classList.toggle('hidden', !perms.canManageRights);
+    analyticsPanel.classList.toggle('hidden', !perms.canSeeAnalytics);
+    addFormPanel.classList.toggle('hidden', !perms.canAdd);
+
+    const batches = fridge.getProcessedBatches();
+    renderFridgeContents(batches, perms);
     renderAnalytics(analytics.getStats());
 }
 
-// ================= НОВАЯ ЛОГИКА =================
-// 5. ДЕЛЕГИРОВАНИЕ СОБЫТИЙ: Обработка кликов по кнопкам "Взять" и "Списать"
-function handleProductAction(event) {
-    // Ищем ближайшую кнопку, по которой кликнули (вдруг кликнули по тексту внутри кнопки)
-    const btn = event.target.closest('button');
-    if (!btn) return; // Если кликнули мимо кнопки — выходим
+// ------------------------------------------------------------------------------
+// СЛУШАТЕЛЬ: СМЕНА РОЛИ С ПРОВЕРКОЙ ПАРОЛЯ (Authentication)
+// ------------------------------------------------------------------------------
+roleSelector.addEventListener('change', (event) => {
+    const selectedRole = event.target.value; // Роль, которую попытались выбрать
+    let isAuthenticated = true; // Изначально верим, что всё хорошо
 
-    // Достаем невидимые данные из атрибутов data-* (dataset)
+    // Если пытаются стать Админом
+    if (selectedRole === 'admin') {
+        const pass = prompt('Вход для Администратора. Введите пароль:');
+        if (pass !== PASSWORDS.admin) {
+            isAuthenticated = false; // Пароль не совпал!
+        }
+    }
+    // Если пытаются стать Пользователем
+    else if (selectedRole === 'user') {
+        const pass = prompt('Вход для Пользователя. Введите пароль:');
+        if (pass !== PASSWORDS.user) {
+            isAuthenticated = false; // Пароль не совпал!
+        }
+    }
+    // Гость и Ребенок пароля не требуют, isAuthenticated остается true
+
+    // Проверяем результат
+    if (isAuthenticated) {
+        // Успех! Меняем роль и перерисовываем экран
+        currentRole = selectedRole;
+        updateUI();
+    } else {
+        // Провал!
+        alert('❌ Неверный пароль! Доступ запрещен.');
+        // Принудительно возвращаем выпадающий список на ту роль, которая была до этого
+        roleSelector.value = currentRole;
+    }
+});
+
+// ------------------------------------------------------------------------------
+// СЛУШАТЕЛЬ: ДЕЛЕГИРОВАНИЕ ПРАВ
+// ------------------------------------------------------------------------------
+chkGuestTake.addEventListener('change', (e) => {
+    PERMISSIONS.guest.canTake = e.target.checked;
+    updateUI();
+});
+chkGuestWaste.addEventListener('change', (e) => {
+    PERMISSIONS.guest.canWaste = e.target.checked;
+    updateUI();
+});
+chkChildTake.addEventListener('change', (e) => {
+    PERMISSIONS.child.canTake = e.target.checked;
+    updateUI();
+});
+
+// ------------------------------------------------------------------------------
+// СЛУШАТЕЛЬ: Обработка кликов по продуктам (Взять / Списать)
+// ------------------------------------------------------------------------------
+function handleProductAction(event) {
+    const btn = event.target.closest('button');
+    if (!btn) return;
+
     const id = btn.dataset.id;
     const action = btn.dataset.action;
-
-    // Если у кнопки нет id или action, значит это какая-то другая кнопка, игнорируем
     if (!id || !action) return;
 
-    // Спрашиваем у Мозга (Fridge.js), что это за продукт
     const batch = fridge.getBatchById(id);
     if (!batch) return;
 
-    // ЕСЛИ НАЖАЛИ "ВЗЯТЬ"
-    if (action === 'consume') {
-        // Показываем стандартное браузерное окно ввода (prompt)
-        const amountStr = prompt(`Сколько "${batch.unit}" взять? (Доступно: ${batch.count})`, "1");
+    const perms = PERMISSIONS[currentRole];
 
-        // Если не нажали Отмена
+    if (action === 'consume' && perms.canTake) {
+        const amountStr = prompt(`Сколько "${batch.unit}" взять? (Доступно: ${batch.count})`, "1");
         if (amountStr !== null) {
             const amount = parseFloat(amountStr);
-
-            // Проверка: ввели ли число и больше ли оно нуля
             if (!isNaN(amount) && amount > 0) {
-
-                // Если захотели взять больше или столько же, сколько есть на полке
                 if (amount >= batch.count) {
-                    analytics.recordConsumption(batch.count); // Записываем в стату всё что было
-                    fridge.removeBatch(id); // Удаляем продукт с полки
+                    analytics.recordConsumption(batch.count);
+                    fridge.removeBatch(id);
                 } else {
-                    // Если взяли часть
-                    analytics.recordConsumption(amount); // Записываем часть в стату
-                    fridge.updateBatchCount(id, batch.count - amount); // Изменяем остаток
+                    analytics.recordConsumption(amount);
+                    fridge.updateBatchCount(id, batch.count - amount);
                 }
-                updateUI(); // Перерисовываем экран
+                updateUI();
             } else {
-                alert('Пожалуйста, введите корректное число больше нуля.');
+                alert('Введите корректное число больше нуля.');
             }
         }
     }
-    // ЕСЛИ НАЖАЛИ "СПИСАТЬ"
-    else if (action === 'waste') {
-        // Показываем окно подтверждения (confirm)
+    else if (action === 'waste' && perms.canWaste) {
         if (confirm(`Вы уверены, что хотите выбросить "${batch.name}"?`)) {
-            analytics.recordWaste(batch.count, batch.price); // Записываем всё в мусор и потери
-            fridge.removeBatch(id); // Удаляем
-            updateUI(); // Перерисовываем
+            analytics.recordWaste(batch.count, batch.price);
+            fridge.removeBatch(id);
+            updateUI();
         }
     }
 }
 
-// Вешаем "Слушателя" на весь контейнер полок
 document.getElementById('fridge-shelves').addEventListener('click', handleProductAction);
-// Вешаем второго "Слушателя" на красную Зону Внимания (там ведь тоже есть эти кнопки)
 document.getElementById('warning-list').addEventListener('click', handleProductAction);
-// ================================================
 
-// 6. АДАПТАЦИЯ КОЛИЧЕСТВА ПОД ЕДИНИЦЫ
+// ------------------------------------------------------------------------------
+// СЛУШАТЕЛЬ: Единицы измерения
+// ------------------------------------------------------------------------------
 inputUnit.addEventListener('input', (event) => {
     const val = event.target.value.toLowerCase().trim();
     if (val === 'шт' || val === 'упак') {
@@ -110,24 +180,12 @@ inputUnit.addEventListener('input', (event) => {
     }
 });
 
-// 7. СЛУШАТЕЛЬ СОБЫТИЙ: СМЕНА РОЛИ
-roleSelector.addEventListener('change', (event) => {
-    currentRole = event.target.value;
-    if (currentRole === 'admin') {
-        adminPanel.classList.remove('hidden');
-    } else {
-        adminPanel.classList.add('hidden');
-    }
-    if (currentRole === 'child') {
-        addFormPanel.classList.add('hidden');
-    } else {
-        addFormPanel.classList.remove('hidden');
-    }
-    updateUI();
-});
-
-// 8. НАЖАТИЕ КНОПКИ "ДОБАВИТЬ В ХОЛОДИЛЬНИК"
+// ------------------------------------------------------------------------------
+// СЛУШАТЕЛЬ: ДОБАВЛЕНИЕ
+// ------------------------------------------------------------------------------
 btnAdd.addEventListener('click', () => {
+    if (!PERMISSIONS[currentRole].canAdd) return;
+
     const name = document.getElementById('p-name').value;
     const category = document.getElementById('p-category').value;
     const count = document.getElementById('p-count').value;

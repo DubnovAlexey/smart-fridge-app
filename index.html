@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Умный холодильник 2.0</title>
 
-    <!-- Подключаем Tailwind CSS через CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -20,17 +19,18 @@
         </h1>
 
         <div class="flex items-center gap-3">
-            <label for="role-selector" class="text-sm font-medium text-slate-500">Пользователь:</label>
+            <label for="role-selector" class="text-sm font-medium text-slate-500">Текущая роль:</label>
+            <!-- ПЕРЕИМЕНОВАНО: "Родитель" заменен на "Пользователь" (value="user") -->
             <select id="role-selector" class="bg-slate-100 border-none rounded-lg px-4 py-2 font-semibold text-slate-700 outline-none cursor-pointer">
-                <option value="parent">👨‍👩‍👧 Родитель</option>
-                <option value="admin">🛠️ Админ</option>
-                <option value="guest">👤 Гость</option>
-                <option value="child">🧒 Ребенок</option>
+                <option value="user">👤 Пользователь (Полные права)</option>
+                <option value="admin">🛠️ Админ (Настройки)</option>
+                <option value="guest">👤 Гость (Ограничено)</option>
+                <option value="child">🧒 Ребенок (Только чтение)</option>
             </select>
         </div>
     </header>
 
-    <!-- 2. ПАНЕЛЬ АДМИНИСТРАТОРА (Скрыта по умолчанию) -->
+    <!-- 2. ПАНЕЛЬ АДМИНИСТРАТОРА (Видит только Админ) -->
     <section id="admin-panel" class="hidden bg-slate-800 text-white rounded-2xl p-6 shadow-sm">
         <h2 class="text-xl font-bold mb-4 flex items-center gap-2">🛠️ Системные настройки (Admin)</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -47,7 +47,35 @@
         </div>
     </section>
 
-    <!-- 3. ПАНЕЛЬ АНАЛИТИКИ И РАБОТЫ С CSV -->
+    <!-- ================= НОВЫЙ БЛОК ================= -->
+    <!-- 3. ПАНЕЛЬ ДЕЛЕГИРОВАНИЯ ПРАВ (Видят: Админ, Пользователь) -->
+    <section id="rights-panel" class="hidden bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+        <h2 class="text-lg font-bold text-slate-700 mb-4">⚙️ Делегирование прав (Управление Гостем и Ребенком)</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Настройка прав Гостя -->
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <h3 class="font-semibold text-slate-700 mb-2">👤 Права Гостя</h3>
+                <label class="flex items-center gap-2 text-sm text-slate-600 mb-2 cursor-pointer">
+                    <!-- Чекбокс делегирования: Разрешить брать -->
+                    <input type="checkbox" id="perm-guest-take" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"> Разрешить брать (съедать) продукты
+                </label>
+                <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                    <!-- Чекбокс делегирования: Разрешить списывать -->
+                    <input type="checkbox" id="perm-guest-waste" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"> Разрешить списывать в мусор
+                </label>
+            </div>
+            <!-- Настройка прав Ребенка -->
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <h3 class="font-semibold text-slate-700 mb-2">🧒 Права Ребенка</h3>
+                <label class="flex items-center gap-2 text-sm text-slate-600 mb-2 cursor-pointer">
+                    <input type="checkbox" id="perm-child-take" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"> Разрешить брать (съедать) продукты
+                </label>
+            </div>
+        </div>
+    </section>
+    <!-- ================================================ -->
+
+    <!-- 4. ПАНЕЛЬ АНАЛИТИКИ (Скрывается от Гостя и Ребенка) -->
     <section id="analytics-panel" class="bg-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
         <div class="flex-1">
             <h2 class="text-lg font-bold text-slate-700 mb-2">📊 Статистика</h2>
@@ -63,7 +91,7 @@
         </div>
     </section>
 
-    <!-- 4. ИНТЕРАКТИВНЫЙ БЛОК AI-ШЕФА -->
+    <!-- 5. ИНТЕРАКТИВНЫЙ БЛОК AI-ШЕФА -->
     <section id="ai-chef-panel" class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 shadow-sm">
         <div class="flex justify-between items-center gap-4">
             <div>
@@ -77,15 +105,13 @@
         <div id="ai-response-box" class="hidden mt-4 bg-white rounded-xl p-4 text-sm text-slate-700 border border-blue-50"></div>
     </section>
 
-    <!-- 5. ЗОНА ВНИМАНИЯ (АХТУНГ!) - ВОТ ЭТУ СЕКЦИЮ Я СЛУЧАЙНО УДАЛИЛ В ПРОШЛЫЙ РАЗ -->
+    <!-- 6. ЗОНА ВНИМАНИЯ (АХТУНГ!) -->
     <section id="warning-zone" class="hidden bg-red-50 border-l-4 border-red-500 rounded-r-2xl p-6 shadow-sm">
         <h2 class="text-lg font-bold text-red-700 mb-4 flex items-center gap-2">🚨 Требует срочного внимания!</h2>
-        <div id="warning-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            <!-- Сюда попадают пульсирующие карточки просрочки -->
-        </div>
+        <div id="warning-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
     </section>
 
-    <!-- 6. ФОРМА ДОБАВЛЕНИЯ ПРОДУКТОВ -->
+    <!-- 7. ФОРМА ДОБАВЛЕНИЯ ПРОДУКТОВ (Скрывается от Ребенка) -->
     <section id="add-form-panel" class="bg-white rounded-2xl p-6 shadow-sm">
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-xl font-bold text-slate-800">➕ Добавить продукты</h2>
@@ -93,12 +119,10 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-
             <div>
                 <label for="p-name" class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Название</label>
                 <input type="text" id="p-name" placeholder="Напр. Кефир" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none">
             </div>
-
             <div>
                 <label for="p-category" class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Категория</label>
                 <select id="p-category" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none">
@@ -110,16 +134,12 @@
                     <option value="other">📦 Прочее</option>
                 </select>
             </div>
-
             <div class="flex gap-2">
                 <div class="w-1/2">
                     <label for="p-unit" class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Ед. изм.</label>
                     <input type="text" id="p-unit" list="unit-options" placeholder="шт" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none">
                     <datalist id="unit-options">
-                        <option value="шт">
-                        <option value="кг">
-                        <option value="л">
-                        <option value="упак">
+                        <option value="шт"><option value="кг"><option value="л"><option value="упак">
                     </datalist>
                 </div>
                 <div class="w-1/2">
@@ -127,39 +147,27 @@
                     <input type="number" id="p-count" placeholder="1" step="1" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none">
                 </div>
             </div>
-
             <div>
                 <label for="p-days" class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Срок (Дней)</label>
                 <input type="number" id="p-days" placeholder="Напр. 5" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none">
             </div>
-
             <div>
                 <button id="btn-add" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2.5 px-4 rounded-lg transition shadow-sm">
                     В холодильник
                 </button>
             </div>
         </div>
-
         <div class="mt-4 flex gap-6 text-sm font-medium text-slate-600">
-            <label class="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" id="p-perishable" class="w-4 h-4 text-blue-600 rounded">
-                ⚠️ Скоропортящееся
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" id="p-frozen" class="w-4 h-4 text-blue-600 rounded">
-                ❄️ В морозилку (Пауза времени)
-            </label>
+            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="p-perishable" class="w-4 h-4 text-blue-600 rounded">⚠️ Скоропортящееся</label>
+            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="p-frozen" class="w-4 h-4 text-blue-600 rounded">❄️ В морозилку</label>
         </div>
     </section>
 
-    <!-- 7. ПОЛКИ ХОЛОДИЛЬНИКА -->
+    <!-- 8. ПОЛКИ ХОЛОДИЛЬНИКА -->
     <section class="bg-white rounded-2xl p-6 shadow-sm">
         <h2 class="text-xl font-bold text-slate-800 mb-6">🧊 Содержимое</h2>
-        <div id="fridge-shelves" class="space-y-8">
-            <!-- Карточки продуктов -->
-        </div>
+        <div id="fridge-shelves" class="space-y-8"></div>
     </section>
-
 </div>
 
 <script type="module" src="./js/app.js"></script>
