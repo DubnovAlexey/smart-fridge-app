@@ -17,7 +17,6 @@
             <h1 class="text-3xl font-black text-blue-600 flex items-center gap-2">
                 ❄️ Умный холодильник
             </h1>
-            <!-- ТИЗЕР 1: Приложение и Сеть холодильников -->
             <div class="flex gap-3 mt-2">
                 <button class="v2-stub text-xs bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-bold px-3 py-1 rounded-full shadow hover:shadow-md transition cursor-pointer">
                     📱 Скачать App (V 2.0)
@@ -47,7 +46,6 @@
                 <label for="api-key-input" class="block text-xs text-slate-400 mb-1">API-ключ Gemini (AI)</label>
                 <input type="password" id="api-key-input" placeholder="Введите ключ..." class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 text-sm outline-none">
             </div>
-            <!-- ТИЗЕР 2: Облако и СМС -->
             <div class="flex items-end">
                 <button class="v2-stub bg-blue-600/50 text-blue-200 border border-blue-500 border-dashed hover:bg-blue-600 px-4 py-2 rounded-lg text-sm font-semibold w-full transition">☁️ Синхронизация (V 2.0)</button>
             </div>
@@ -77,8 +75,6 @@
                 </label>
             </div>
         </div>
-
-        <!-- ТИЗЕР 3: Индивидуальные профили -->
         <button class="v2-stub w-full mt-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-2.5 rounded-xl border border-indigo-200 border-dashed transition flex justify-center items-center gap-2">
             👨‍👩‍👧‍👦 Создать индивидуальные профили (Оля, Ваня, Гость 1) — Доступно в V 2.0
         </button>
@@ -89,7 +85,6 @@
         <div class="flex-1">
             <div class="flex items-center gap-4 mb-2">
                 <h2 class="text-lg font-bold text-slate-700">📊 Общая статистика</h2>
-                <!-- ТИЗЕР 4: Детальная стата -->
                 <button class="v2-stub text-xs text-indigo-500 font-semibold underline decoration-dashed hover:text-indigo-700 transition">Кто сколько съел? (V 2.0)</button>
             </div>
             <div class="flex gap-6 text-sm">
@@ -105,24 +100,29 @@
         </div>
     </section>
 
-    <!-- 5. AI-ШЕФ -->
+    <!-- 5. AI-ШЕФ (ИЗМЕНЕНО) -->
     <section id="ai-chef-panel" class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 shadow-sm">
-        <div class="flex justify-between items-center gap-4">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div>
                 <h2 class="text-xl font-bold text-blue-900">🤖 AI-Шеф-повар</h2>
-                <p class="text-sm text-blue-700 mt-1">Нейросеть придумает рецепт из того, что скоро испортится.</p>
+                <p class="text-sm text-blue-700 mt-1">Нейросеть придумает 5-7 рецептов из ваших продуктов.</p>
             </div>
-            <div class="flex gap-2">
-                <!-- ТИЗЕР 5: Сохранение рецептов -->
-                <button class="v2-stub bg-white text-indigo-600 border border-indigo-200 border-dashed hover:bg-indigo-50 font-semibold px-4 py-3 rounded-xl transition text-sm">
-                    📚 Мои рецепты (V 2.0)
+
+            <!-- Новые кнопки: Спасатель и Весь холодильник -->
+            <div class="flex flex-wrap gap-2">
+                <button class="v2-stub bg-white text-indigo-600 border border-indigo-200 border-dashed hover:bg-indigo-50 font-semibold px-3 py-2 rounded-xl transition text-sm">
+                    📚 Рецепты (V 2.0)
                 </button>
-                <button id="btn-ask-ai" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-xl transition shadow-md whitespace-nowrap">
-                    🍳 Придумать рецепт
+                <button id="btn-ask-ai-rescue" class="bg-red-500 hover:bg-red-600 text-white font-bold px-4 py-2 rounded-xl transition shadow-md text-sm whitespace-nowrap">
+                    🚨 Спасти продукты
+                </button>
+                <button id="btn-ask-ai-all" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl transition shadow-md text-sm whitespace-nowrap">
+                    🥗 Из всего, что есть
                 </button>
             </div>
         </div>
-        <div id="ai-response-box" class="hidden mt-4 bg-white rounded-xl p-4 text-sm text-slate-700 border border-blue-50"></div>
+        <!-- Добавлена прокрутка (max-h-96 overflow-y-auto) -->
+        <div id="ai-response-box" class="hidden mt-4 bg-white rounded-xl p-4 text-sm text-slate-700 border border-blue-50 max-h-96 overflow-y-auto"></div>
     </section>
 
     <!-- 6. ЗОНА ВНИМАНИЯ -->
@@ -135,7 +135,6 @@
     <section id="add-form-panel" class="bg-white rounded-2xl p-6 shadow-sm">
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-xl font-bold text-slate-800">➕ Добавить продукты</h2>
-            <!-- ТИЗЕР 6: Сканеры и Базы -->
             <div class="flex gap-4">
                 <button class="v2-stub text-slate-500 hover:text-indigo-600 transition font-semibold text-sm border-b border-dashed border-slate-300 pb-0.5">🧾 Скан чека (V 2.0)</button>
                 <button class="v2-stub text-slate-500 hover:text-indigo-600 transition font-semibold text-sm border-b border-dashed border-slate-300 pb-0.5">🌐 База ГОСТов (V 2.0)</button>

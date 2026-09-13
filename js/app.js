@@ -199,51 +199,57 @@ btnAdd.addEventListener('click', () => {
     updateUI();
 });
 
-// ==============================================================================
-// РЕКЛАМНАЯ КАМПАНИЯ (ТЕСТ ФАЛЬШИВОЙ ДВЕРИ)
-// ==============================================================================
 const v2Stubs = document.querySelectorAll('.v2-stub');
 v2Stubs.forEach(btn => {
     btn.addEventListener('click', (e) => {
-        e.preventDefault(); // Останавливаем стандартное поведение кнопки
+        e.preventDefault();
         alert('🚀 ЭКСКЛЮЗИВНО В ВЕРСИИ 2.0!\n\nВы нажали на премиум-функцию. В следующей версии проекта (ветка v2-cloud-backend) вас ждут:\n\n• Облачная синхронизация Firebase\n• Индивидуальные профили с паролями\n• Распознавание чеков по фото (OCR)\n• Мобильное приложение (PWA)\n• Интеграция с базой ГОСТов OpenFoodFacts\n\nОставайтесь с нами! Оцените Версию 1.0 на "Отлично" 😉');
     });
 });
 
-// ==============================================================================
-// РАБОТА С CSV
-// ==============================================================================
-btnExport.addEventListener('click', () => {
-    exportToCSV(fridge.batches);
-});
-
-btnImport.addEventListener('click', () => {
-    inputCsv.click();
-});
-
+btnExport.addEventListener('click', () => { exportToCSV(fridge.batches); });
+btnImport.addEventListener('click', () => { inputCsv.click(); });
 inputCsv.addEventListener('change', (e) => {
     const file = e.target.files[0];
-    if (file) {
-        importFromCSV(file, fridge, updateUI);
-        inputCsv.value = '';
-    }
+    if (file) { importFromCSV(file, fridge, updateUI); inputCsv.value = ''; }
 });
 
-document.getElementById('btn-ask-ai').addEventListener('click', async () => {
+// ==============================================================================
+// НОВАЯ ЛОГИКА AI-ШЕФА (Поддержка двух режимов)
+// ==============================================================================
+async function handleAiRequest(mode) {
     const apiKey = apiKeyInput.value.trim() || localStorage.getItem('gemini_api_key');
     if (!apiKey) { alert('Пожалуйста, введите ваш API-ключ Gemini в Панели Админа.'); return; }
     localStorage.setItem('gemini_api_key', apiKey);
 
     const responseBox = document.getElementById('ai-response-box');
-    const btnAskAi = document.getElementById('btn-ask-ai');
-    responseBox.classList.remove('hidden');
-    responseBox.innerHTML = '<i>⏳ Нейросеть изучает ваш холодильник... Это займет пару секунд.</i>';
-    btnAskAi.disabled = true;
+    const btnRescue = document.getElementById('btn-ask-ai-rescue');
+    const btnAll = document.getElementById('btn-ask-ai-all');
 
-    const recipe = await askGeminiRecipe(apiKey, fridge.getProcessedBatches());
-    const formattedRecipe = recipe.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+    // Блокируем кнопки и показываем текст загрузки
+    responseBox.classList.remove('hidden');
+    responseBox.innerHTML = '<i>⏳ Нейросеть составляет меню из 5-7 рецептов... Это может занять до 15 секунд. Пожалуйста, подождите.</i>';
+    btnRescue.disabled = true;
+    btnAll.disabled = true;
+
+    // Делаем запрос к API
+    const recipe = await askGeminiRecipe(apiKey, fridge.getProcessedBatches(), mode);
+
+    // Форматируем ответ (превращаем звездочки в жирный текст, а тире "---" в HTML-линии)
+    let formattedRecipe = recipe
+        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+        .replace(/\n/g, '<br>')
+        .replace(/---/g, '<hr class="my-4 border-indigo-100">');
+
     responseBox.innerHTML = formattedRecipe;
-    btnAskAi.disabled = false;
-});
+
+    // Разблокируем кнопки
+    btnRescue.disabled = false;
+    btnAll.disabled = false;
+}
+
+// Вешаем слушателей на обе новые кнопки
+document.getElementById('btn-ask-ai-rescue').addEventListener('click', () => handleAiRequest('rescue'));
+document.getElementById('btn-ask-ai-all').addEventListener('click', () => handleAiRequest('all'));
 
 updateUI();
