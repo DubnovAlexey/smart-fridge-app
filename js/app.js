@@ -8,16 +8,11 @@ import { AnalyticsModel } from './models/Analytics.js';
 import { renderFridgeContents, renderAnalytics } from './ui/render.js';
 import { validateProductData } from './utils/helpers.js';
 
-// ================= СИСТЕМА БЕЗОПАСНОСТИ =================
-
-// 1. БАЗА ПАРОЛЕЙ (Аутентификация)
-// В реальном мире это хранится на сервере в зашифрованном виде.
 const PASSWORDS = {
-    admin: 'admin2026', // Пароль для Админа
-    user: '1234'        // Пароль для Пользователя
+    admin: 'admin2026',
+    user: '1234'
 };
 
-// 2. МАТРИЦА ПРАВ (Авторизация / RBAC)
 const PERMISSIONS = {
     admin: { canAdd: true, canTake: true, canWaste: true, canSeeAnalytics: true, canSeeAdmin: true, canManageRights: true },
     user:  { canAdd: true, canTake: true, canWaste: true, canSeeAnalytics: true, canSeeAdmin: false, canManageRights: true },
@@ -28,10 +23,8 @@ const PERMISSIONS = {
 const fridge = new FridgeModel();
 const analytics = new AnalyticsModel();
 
-// Начинаем как Гость (чтобы при открытии программы никто не имел полных прав без пароля)
 let currentRole = 'guest';
 
-// ПОИСК ЭЛЕМЕНТОВ (DOM)
 const roleSelector = document.getElementById('role-selector');
 const adminPanel = document.getElementById('admin-panel');
 const rightsPanel = document.getElementById('rights-panel');
@@ -41,20 +34,18 @@ const btnAdd = document.getElementById('btn-add');
 const inputUnit = document.getElementById('p-unit');
 const inputCount = document.getElementById('p-count');
 
-// Чекбоксы делегирования прав
+// НОВЫЕ ПЕРЕМЕННЫЕ: Поля дат
+const inputDays = document.getElementById('p-days');
+const inputDate = document.getElementById('p-date');
+
 const chkGuestTake = document.getElementById('perm-guest-take');
 const chkGuestWaste = document.getElementById('perm-guest-waste');
 const chkChildTake = document.getElementById('perm-child-take');
 
-// Устанавливаем в выпадающем списке стартовую роль (чтобы интерфейс совпадал с переменной)
 roleSelector.value = currentRole;
 
-// ------------------------------------------------------------------------------
-// ФУНКЦИЯ ОБНОВЛЕНИЯ ЭКРАНА
-// ------------------------------------------------------------------------------
 function updateUI() {
     const perms = PERMISSIONS[currentRole];
-
     adminPanel.classList.toggle('hidden', !perms.canSeeAdmin);
     rightsPanel.classList.toggle('hidden', !perms.canManageRights);
     analyticsPanel.classList.toggle('hidden', !perms.canSeeAnalytics);
@@ -66,44 +57,46 @@ function updateUI() {
 }
 
 // ------------------------------------------------------------------------------
-// СЛУШАТЕЛЬ: СМЕНА РОЛИ С ПРОВЕРКОЙ ПАРОЛЯ (Authentication)
+// НОВЫЙ БЛОК: ВЗАИМОИСКЛЮЧЕНИЕ КАЛЕНДАРЯ И ДНЕЙ
 // ------------------------------------------------------------------------------
-roleSelector.addEventListener('change', (event) => {
-    const selectedRole = event.target.value; // Роль, которую попытались выбрать
-    let isAuthenticated = true; // Изначально верим, что всё хорошо
+// Если пользователь вводит дни руками, очищаем календарь
+inputDays.addEventListener('input', () => {
+    if (inputDays.value !== '') {
+        inputDate.value = '';
+    }
+});
 
-    // Если пытаются стать Админом
+// Если пользователь выбирает дату в календаре, очищаем ручной ввод дней
+inputDate.addEventListener('input', () => {
+    if (inputDate.value !== '') {
+        inputDays.value = '';
+    }
+});
+
+
+roleSelector.addEventListener('change', (event) => {
+    const selectedRole = event.target.value;
+    let isAuthenticated = true;
+
     if (selectedRole === 'admin') {
         const pass = prompt('Вход для Администратора. Введите пароль:');
-        if (pass !== PASSWORDS.admin) {
-            isAuthenticated = false; // Пароль не совпал!
-        }
+        if (pass !== PASSWORDS.admin) isAuthenticated = false;
     }
-    // Если пытаются стать Пользователем
     else if (selectedRole === 'user') {
         const pass = prompt('Вход для Пользователя. Введите пароль:');
-        if (pass !== PASSWORDS.user) {
-            isAuthenticated = false; // Пароль не совпал!
-        }
+        if (pass !== PASSWORDS.user) isAuthenticated = false;
     }
-    // Гость и Ребенок пароля не требуют, isAuthenticated остается true
 
-    // Проверяем результат
     if (isAuthenticated) {
-        // Успех! Меняем роль и перерисовываем экран
         currentRole = selectedRole;
         updateUI();
     } else {
-        // Провал!
         alert('❌ Неверный пароль! Доступ запрещен.');
-        // Принудительно возвращаем выпадающий список на ту роль, которая была до этого
         roleSelector.value = currentRole;
     }
 });
 
-// ------------------------------------------------------------------------------
-// СЛУШАТЕЛЬ: ДЕЛЕГИРОВАНИЕ ПРАВ
-// ------------------------------------------------------------------------------
+
 chkGuestTake.addEventListener('change', (e) => {
     PERMISSIONS.guest.canTake = e.target.checked;
     updateUI();
@@ -117,9 +110,6 @@ chkChildTake.addEventListener('change', (e) => {
     updateUI();
 });
 
-// ------------------------------------------------------------------------------
-// СЛУШАТЕЛЬ: Обработка кликов по продуктам (Взять / Списать)
-// ------------------------------------------------------------------------------
 function handleProductAction(event) {
     const btn = event.target.closest('button');
     if (!btn) return;
@@ -163,9 +153,6 @@ function handleProductAction(event) {
 document.getElementById('fridge-shelves').addEventListener('click', handleProductAction);
 document.getElementById('warning-list').addEventListener('click', handleProductAction);
 
-// ------------------------------------------------------------------------------
-// СЛУШАТЕЛЬ: Единицы измерения
-// ------------------------------------------------------------------------------
 inputUnit.addEventListener('input', (event) => {
     const val = event.target.value.toLowerCase().trim();
     if (val === 'шт' || val === 'упак') {
@@ -180,9 +167,7 @@ inputUnit.addEventListener('input', (event) => {
     }
 });
 
-// ------------------------------------------------------------------------------
-// СЛУШАТЕЛЬ: ДОБАВЛЕНИЕ
-// ------------------------------------------------------------------------------
+
 btnAdd.addEventListener('click', () => {
     if (!PERMISSIONS[currentRole].canAdd) return;
 
@@ -190,21 +175,29 @@ btnAdd.addEventListener('click', () => {
     const category = document.getElementById('p-category').value;
     const count = document.getElementById('p-count').value;
     const unit = document.getElementById('p-unit').value;
+
+    // Считываем оба поля
     const days = document.getElementById('p-days').value;
+    const exactDate = document.getElementById('p-date').value;
+
     const isPerishable = document.getElementById('p-perishable').checked;
     const isFrozen = document.getElementById('p-frozen').checked;
 
-    const validationResult = validateProductData(name, count, days);
+    // Передаем и days, и exactDate на фейс-контроль
+    const validationResult = validateProductData(name, count, days, exactDate);
     if (!validationResult.valid) {
         alert(`❌ Ошибка: ${validationResult.error}`);
         return;
     }
 
-    fridge.addBatch(name, category, count, unit, days, isPerishable, isFrozen, 0, "");
+    // Отправляем в Мозг оба параметра сроков
+    fridge.addBatch(name, category, count, unit, days, exactDate, isPerishable, isFrozen, 0, "");
 
+    // Очищаем форму (включая календарь)
     document.getElementById('p-name').value = '';
     document.getElementById('p-count').value = '';
     document.getElementById('p-days').value = '';
+    document.getElementById('p-date').value = '';
     document.getElementById('p-unit').value = '';
     document.getElementById('p-perishable').checked = false;
     document.getElementById('p-frozen').checked = false;
@@ -212,5 +205,4 @@ btnAdd.addEventListener('click', () => {
     updateUI();
 });
 
-// 9. ПЕРВЫЙ ЗАПУСК
 updateUI();

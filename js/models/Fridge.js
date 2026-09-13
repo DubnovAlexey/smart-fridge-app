@@ -1,6 +1,6 @@
 // ==============================================================================
 // ФАЙЛ: js/models/Fridge.js
-// НАЗНАЧЕНИЕ: Бизнес-логика (Мозг). Здесь мы считаем даты, создаем партии продуктов.
+// НАЗНАЧЕНИЕ: Бизнес-логика (Мозг).
 // ==============================================================================
 
 import { loadFridgeData, saveFridgeData } from '../storage.js';
@@ -10,11 +10,24 @@ export class FridgeModel {
         this.batches = loadFridgeData();
     }
 
-    // МЕТОД: Добавление новой партии (без изменений)
-    addBatch(name, category, count, unit, daysValid, isPerishable, isFrozen, price, note) {
+    // ДОБАВЛЕНО: параметр exactDate
+    addBatch(name, category, count, unit, daysValid, exactDate, isPerishable, isFrozen, price, note) {
         const now = Date.now();
         const msInDay = 24 * 60 * 60 * 1000;
-        const expirationDate = now + (daysValid * msInDay);
+
+        let expirationDate;
+
+        // ЛОГИКА ВЫБОРА ДАТЫ:
+        // Если пользователь выбрал дату в календаре (например, "2026-10-15")
+        if (exactDate) {
+            // Класс 'new Date()' переводит текстовую дату в системный формат,
+            // а '.getTime()' делает из неё миллисекунды (Timestamp)
+            expirationDate = new Date(exactDate).getTime();
+        }
+        // Иначе высчитываем дату прибавлением дней к текущему моменту
+        else {
+            expirationDate = now + (daysValid * msInDay);
+        }
 
         const newBatch = {
             id: Date.now().toString(),
@@ -34,7 +47,6 @@ export class FridgeModel {
         saveFridgeData(this.batches);
     }
 
-    // МЕТОД: Получить все продукты с пересчетом дат (без изменений)
     getProcessedBatches() {
         const now = Date.now();
         const msInDay = 24 * 60 * 60 * 1000;
@@ -51,22 +63,15 @@ export class FridgeModel {
         return processed.sort((a, b) => a.daysLeft - b.daysLeft);
     }
 
-    // ================= НОВЫЕ МЕТОДЫ =================
-
-    // МЕТОД: Найти конкретный продукт по его уникальному ID
     getBatchById(id) {
-        // Функция find ищет в массиве первый элемент, у которого совпадает id
         return this.batches.find(batch => batch.id === id);
     }
 
-    // МЕТОД: Удалить продукт полностью (например, когда съели всё или выбросили)
     removeBatch(id) {
-        // Функция filter оставляет в массиве только те продукты, чей id НЕ РАВЕН удаляемому
         this.batches = this.batches.filter(batch => batch.id !== id);
-        saveFridgeData(this.batches); // Перезаписываем сейф
+        saveFridgeData(this.batches);
     }
 
-    // МЕТОД: Изменить количество (когда взяли только часть)
     updateBatchCount(id, newCount) {
         const batch = this.getBatchById(id);
         if (batch) {
