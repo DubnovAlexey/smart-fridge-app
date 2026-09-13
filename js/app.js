@@ -6,7 +6,7 @@
 import { FridgeModel } from './models/Fridge.js';
 import { AnalyticsModel } from './models/Analytics.js';
 import { renderFridgeContents, renderAnalytics } from './ui/render.js';
-import { validateProductData } from './utils/helpers.js';
+import { validateProductData, showToast } from './utils/helpers.js';
 import { askGeminiRecipe } from './utils/aiChef.js';
 import { exportToCSV, importFromCSV } from './utils/csvManager.js';
 
@@ -83,8 +83,9 @@ roleSelector.addEventListener('change', (event) => {
             apiKeyInput.value = '';
         }
         updateUI();
+        showToast(`Вы вошли как: ${selectedRole.toUpperCase()}`, 'success');
     } else {
-        alert('❌ Неверный пароль! Доступ запрещен.');
+        showToast('Неверный пароль! Доступ запрещен.', 'error');
         roleSelector.value = currentRole;
     }
 });
@@ -116,7 +117,7 @@ function handleProductAction(event) {
                     fridge.updateBatchCount(id, batch.count - amount);
                 }
                 updateUI();
-            } else { alert('Введите корректное число больше нуля.'); }
+            } else { showToast('Введите корректное число больше нуля.', 'error'); }
         }
     }
     else if (action === 'waste' && perms.canWaste) {
@@ -132,7 +133,7 @@ function handleProductAction(event) {
         document.getElementById('p-count').value = batch.count;
         document.getElementById('p-unit').value = batch.unit;
 
-        // Преобразуем timestamp в точную дату формата YYYY-MM-DD для поля ввода
+        // Исправление бага с датой: конвертируем timestamp обратно в строку для инпута
         const expDate = new Date(batch.expirationDate);
         const yyyy = expDate.getFullYear();
         const mm = String(expDate.getMonth() + 1).padStart(2, '0');
@@ -183,7 +184,7 @@ btnAdd.addEventListener('click', () => {
     const isFrozen = document.getElementById('p-frozen').checked;
 
     const validationResult = validateProductData(name, count, days, exactDate);
-    if (!validationResult.valid) { alert(`❌ Ошибка: ${validationResult.error}`); return; }
+    if (!validationResult.valid) { showToast(validationResult.error, 'error'); return; }
 
     if (editingBatchId) {
         const msInDay = 24 * 60 * 60 * 1000;
@@ -196,8 +197,10 @@ btnAdd.addEventListener('click', () => {
         btnAdd.textContent = 'В холодильник';
         btnAdd.classList.replace('bg-blue-600', 'bg-green-500');
         btnAdd.classList.replace('hover:bg-blue-700', 'hover:bg-green-600');
+        showToast('Изменения сохранены', 'success');
     } else {
         fridge.addBatch(name, category, count, unit, days, exactDate, isPerishable, isFrozen, price, note);
+        showToast('Продукт добавлен', 'success');
     }
 
     document.getElementById('p-name').value = '';
@@ -218,7 +221,7 @@ const v2Stubs = document.querySelectorAll('.v2-stub');
 v2Stubs.forEach(btn => {
     btn.addEventListener('click', (e) => {
         e.preventDefault();
-        alert('🚀 ЭКСКЛЮЗИВНО В ВЕРСИИ 2.0!\n\nВы нажали на премиум-функцию. В следующей версии проекта (ветка v2-cloud-backend) вас ждут:\n\n• Облачная синхронизация Firebase\n• Индивидуальные профили с паролями\n• Распознавание чеков по фото (OCR)\n• Мобильное приложение (PWA)\n• Интеграция с базой ГОСТов OpenFoodFacts\n\nОставайтесь с нами! Оцените Версию 1.0 на "Отлично" 😉');
+        showToast('🚀 Функция будет доступна в Версии 2.0!', 'info');
     });
 });
 
@@ -231,7 +234,7 @@ inputCsv.addEventListener('change', (e) => {
 
 async function handleAiRequest(mode) {
     const apiKey = apiKeyInput.value.trim() || sessionStorage.getItem('gemini_api_key');
-    if (!apiKey) { alert('Пожалуйста, введите ваш API-ключ Gemini в Панели Админа.'); return; }
+    if (!apiKey) { showToast('Введите ваш API-ключ Gemini в Панели Админа.', 'error'); return; }
 
     sessionStorage.setItem('gemini_api_key', apiKey);
 

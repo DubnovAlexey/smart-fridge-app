@@ -1,11 +1,12 @@
 // ==============================================================================
 // ФАЙЛ: js/utils/csvManager.js
-// НАЗНАЧЕНИЕ: Экспорт и Импорт базы продуктов в формате CSV
+// НАЗНАЧЕНИЕ: Экспорт и Импорт базы продуктов в формате CSV (с защитой кавычек)
 // ==============================================================================
+import { showToast } from './helpers.js';
 
 export function exportToCSV(batches) {
     if (batches.length === 0) {
-        alert('Холодильник пуст. Нечего экспортировать!');
+        showToast('Холодильник пуст. Нечего экспортировать!', 'error');
         return;
     }
 
@@ -16,7 +17,7 @@ export function exportToCSV(batches) {
         const added = new Date(b.addedAt).toLocaleDateString('ru-RU');
         const exp = new Date(b.expirationDate).toLocaleDateString('ru-RU');
 
-        // Оборачиваем в кавычки и экранируем внутренние кавычки
+        // Оборачиваем текстовые поля в кавычки для защиты запятых внутри текста
         const safeName = `"${b.name.replace(/"/g, '""')}"`;
         const safeNote = `"${(b.note || '').replace(/"/g, '""')}"`;
 
@@ -31,6 +32,7 @@ export function exportToCSV(batches) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    showToast('База успешно экспортирована', 'success');
 }
 
 export function importFromCSV(file, fridgeModel, updateCallback) {
@@ -42,7 +44,7 @@ export function importFromCSV(file, fridgeModel, updateCallback) {
             const lines = text.split('\n').filter(line => line.trim() !== '');
             let importedCount = 0;
 
-            // Надежный парсер строки CSV с поддержкой кавычек и запятых внутри
+            // Надежный парсер строки, который игнорирует запятые внутри кавычек
             const parseCSVLine = (str) => {
                 let result = [];
                 let current = '';
@@ -50,7 +52,7 @@ export function importFromCSV(file, fridgeModel, updateCallback) {
                 for (let i = 0; i < str.length; i++) {
                     let char = str[i];
                     if (char === '"' && str[i+1] === '"') {
-                        current += '"'; i++; // пропускаем экранированную кавычку
+                        current += '"'; i++;
                     } else if (char === '"') {
                         inQuotes = !inQuotes;
                     } else if (char === ',' && !inQuotes) {
@@ -72,7 +74,7 @@ export function importFromCSV(file, fridgeModel, updateCallback) {
                     const count = columns[3];
                     const unit = columns[4];
 
-                    // Парсим русскую дату (ДД.ММ.ГГГГ) в формат для инпута (ГГГГ-ММ-ДД)
+                    // Парсим русскую дату (ДД.ММ.ГГГГ) обратно в формат ISO
                     let exactDate = '';
                     if (columns[6]) {
                         const dateParts = columns[6].split('.');
@@ -84,15 +86,14 @@ export function importFromCSV(file, fridgeModel, updateCallback) {
                     const price = columns[7] || 0;
                     const note = columns[8] || '';
 
-                    // Передаем пустую строку в days, и точную дату в exactDate
                     fridgeModel.addBatch(name, category, count, unit, '', exactDate, false, false, price, note);
                     importedCount++;
                 }
             }
-            alert(`✅ Успешно импортировано продуктов: ${importedCount}`);
+            showToast(`Успешно импортировано продуктов: ${importedCount}`, 'success');
             updateCallback();
         } catch (error) {
-            alert('❌ Ошибка при чтении CSV файла. Убедитесь, что формат верный.');
+            showToast('Ошибка при чтении CSV файла. Убедитесь, что формат верный.', 'error');
             console.error(error);
         }
     };

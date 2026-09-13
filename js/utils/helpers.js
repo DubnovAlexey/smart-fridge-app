@@ -1,43 +1,46 @@
 // ==============================================================================
 // ФАЙЛ: js/utils/helpers.js
-// НАЗНАЧЕНИЕ: Вспомогательные функции и фейс-контроль (Валидация).
+// НАЗНАЧЕНИЕ: Валидация и UI-утилиты (Toasts)
 // ==============================================================================
 
-// ДОБАВЛЕНО: Новый параметр exactDate (точная дата)
 export function validateProductData(name, count, days, exactDate) {
-
-    // 1. Проверка названия
-    if (!name || name.trim() === '') {
-        return { valid: false, error: 'Название продукта не может быть пустым.' };
-    }
-
-    // 2. Проверка количества
-    if (count <= 0 || isNaN(count)) {
-        return { valid: false, error: 'Количество должно быть больше нуля.' };
-    }
-
-    // 3. НОВАЯ ЛОГИКА: Проверка сроков годности
-    // Если пользователь не ввел ни дни, ни точную дату
-    if (!days && !exactDate) {
-        return { valid: false, error: 'Укажите срок годности в днях ИЛИ выберите точную дату в календаре.' };
-    }
-
-    // Если ввели дни, проверяем, чтобы они не были отрицательными
-    if (days && (days < 0 || isNaN(days))) {
-        return { valid: false, error: 'Срок годности в днях не может быть отрицательным.' };
-    }
-
-    // Если все проверки пройдены
+    if (!name.trim()) return { valid: false, error: 'Введите название продукта.' };
+    if (isNaN(count) || count <= 0) return { valid: false, error: 'Укажите корректное количество.' };
+    if (!days && !exactDate) return { valid: false, error: 'Укажите срок годности в днях ИЛИ выберите дату.' };
     return { valid: true };
 }
 
-// Функция бейджиков остается без изменений
-export function getStatusBadge(daysLeft) {
-    if (daysLeft < 0) {
-        return { text: 'Просрочено', classes: 'bg-red-100 text-red-700 border-red-200' };
+export function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+
+    // Базовые стили для плашки
+    toast.className = 'px-5 py-3 rounded-xl shadow-xl text-sm font-bold text-white transform transition-all duration-300 translate-y-10 opacity-0 flex items-center gap-3 max-w-xs sm:max-w-md w-full';
+
+    let icon = '💡';
+    if (type === 'error') {
+        toast.classList.add('bg-red-500');
+        icon = '🚨';
+    } else if (type === 'success') {
+        toast.classList.add('bg-green-500');
+        icon = '✅';
+    } else {
+        toast.classList.add('bg-blue-600');
     }
-    if (daysLeft <= 3) {
-        return { text: `Осталось дней: ${daysLeft}`, classes: 'bg-yellow-100 text-yellow-800 border-yellow-300' };
-    }
-    return { text: `Осталось дней: ${daysLeft}`, classes: 'bg-green-100 text-green-700 border-green-200' };
+
+    toast.innerHTML = `<span class="text-xl">${icon}</span> <span>${message}</span>`;
+    container.appendChild(toast);
+
+    // Появление
+    requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-10', 'opacity-0');
+    });
+
+    // Исчезновение через 3.5 секунды
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-x-10');
+        setTimeout(() => toast.remove(), 300);
+    }, 3500);
 }

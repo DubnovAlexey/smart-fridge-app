@@ -1,99 +1,56 @@
 // ==============================================================================
 // ФАЙЛ: js/ui/render.js
-// НАЗНАЧЕНИЕ: Рендеринг (отрисовка) данных на странице HTML.
+// НАЗНАЧЕНИЕ: Генерация HTML для списка продуктов и аналитики
 // ==============================================================================
 
-import { getStatusBadge } from '../utils/helpers.js';
+export function renderFridgeContents(batches, permissions) {
+    const container = document.getElementById('fridge-shelves');
+    container.innerHTML = '';
 
-const CATEGORY_NAMES = {
-    dairy: '🥛 Молочка и Яйца',
-    meat: '🥩 Мясо и Рыба',
-    veg: '🍎 Овощи и Фрукты',
-    prepared: '🍲 Готовая еда',
-    pantry: '🥫 Бакалея',
-    other: '📦 Прочее'
-};
-
-export function renderFridgeContents(batches, perms) {
-    const shelvesContainer = document.getElementById('fridge-shelves');
-    const warningList = document.getElementById('warning-list');
-    const warningZone = document.getElementById('warning-zone');
-
-    shelvesContainer.innerHTML = '';
-    warningList.innerHTML = '';
-
+    // ПУСТОЕ СОСТОЯНИЕ (Empty State)
     if (batches.length === 0) {
-        shelvesContainer.innerHTML = '<p class="text-slate-400 text-center py-10">Холодильник пока пуст. Загрузите продукты!</p>';
-        warningZone.classList.add('hidden');
+        container.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-12 px-4 bg-gradient-to-b from-blue-50/50 to-white rounded-2xl border-2 border-dashed border-blue-200">
+                <div class="text-7xl mb-4 filter drop-shadow-sm opacity-90">❄️🧊</div>
+                <h3 class="text-2xl font-black text-blue-900 mb-2">Холодильник пуст</h3>
+                <p class="text-blue-600/80 text-center max-w-sm font-medium text-sm">Самое время отправиться за покупками! Наполните полки, чтобы AI-Шеф смог составить для вас вкусное меню.</p>
+            </div>
+        `;
         return;
     }
 
-    let warningCount = 0;
-
     batches.forEach(batch => {
-        const badge = getStatusBadge(batch.daysLeft);
-        const addedDate = new Date(batch.addedAt).toLocaleDateString('ru-RU');
-        const expDate = new Date(batch.expirationDate).toLocaleDateString('ru-RU');
-
-        const cardHTML = `
-            <div class="bg-white border border-slate-100 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center shadow-sm hover:shadow-md transition gap-4">
+        const isWarning = batch.daysLeft <= 3 || batch.isPerishable;
+        const itemHTML = `
+            <div class="flex flex-col md:flex-row justify-between md:items-center bg-slate-50 p-4 rounded-xl border border-slate-200 gap-4">
                 <div>
-                    <h3 class="text-lg font-bold text-slate-800">${batch.name}</h3>
-                    <p class="text-xs text-slate-500 mb-1">${CATEGORY_NAMES[batch.category]} • Положено: ${addedDate} • Годен до: <b>${expDate}</b></p>
-                    
-                    ${batch.note ? `<p class="text-xs text-slate-600 mb-2 italic bg-slate-50 inline-block px-2 py-1 rounded border border-slate-200">📝 ${batch.note}</p>` : ''}
-                    
-                    <div class="mt-2 flex items-center gap-2">
-                        <span class="px-3 py-1 text-xs font-bold border rounded-full ${badge.classes}">
-                            ${badge.text}
+                    <h4 class="font-bold text-slate-800 text-lg">${batch.name}</h4>
+                    <p class="text-sm text-slate-500">${batch.category} | Добавлено: ${new Date(batch.addedAt).toLocaleDateString()} | ${batch.isFrozen ? '❄️ В морозилке' : ''}</p>
+                    <div class="mt-2">
+                        <span class="inline-block px-2 py-1 rounded text-xs font-semibold ${isWarning ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}">
+                            Осталось дней: ${batch.daysLeft}
                         </span>
-                        ${batch.price > 0 ? `<span class="text-xs font-semibold text-slate-500">💰 ${batch.price} ₽</span>` : ''}
                     </div>
                 </div>
-                <div class="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
-                    <div class="text-right">
-                        <span class="block text-2xl font-black text-blue-600">${batch.count}</span>
-                        <span class="text-xs font-bold text-slate-400 uppercase">${batch.unit}</span>
+                <div class="flex items-center gap-6">
+                    <div class="text-center">
+                        <div class="text-2xl font-black text-slate-700">${batch.count}</div>
+                        <div class="text-xs text-slate-500 uppercase font-bold">${batch.unit}</div>
                     </div>
-                    
                     <div class="flex flex-col gap-2">
-                        <!-- ИЗМЕНЕНО: Кнопка "Изменить" (data-action="edit") -->
-                        ${perms.canAdd ? `
-                            <button class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-1.5 px-3 rounded transition" 
-                                    data-id="${batch.id}" data-action="edit">✏️ Изменить</button>
-                        ` : ''}
-
-                        ${perms.canTake ? `
-                            <button class="bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold py-1.5 px-3 rounded transition" 
-                                    data-id="${batch.id}" data-action="consume">➖ Взять</button>
-                        ` : ''}
-                        
-                        ${perms.canWaste ? `
-                            <button class="bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold py-1.5 px-3 rounded transition" 
-                                    data-id="${batch.id}" data-action="waste">🗑 Списать</button>
-                        ` : ''}
+                        ${permissions.canAdd ? `<button data-id="${batch.id}" data-action="edit" class="text-xs text-blue-600 hover:underline cursor-pointer">✏️ Изменить</button>` : ''}
+                        ${permissions.canTake ? `<button data-id="${batch.id}" data-action="consume" class="bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold py-1 px-3 rounded text-sm transition cursor-pointer">— Взять</button>` : ''}
+                        ${permissions.canWaste ? `<button data-id="${batch.id}" data-action="waste" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold py-1 px-3 rounded text-sm transition cursor-pointer">🗑 Списать</button>` : ''}
                     </div>
                 </div>
             </div>
         `;
-
-        shelvesContainer.insertAdjacentHTML('beforeend', cardHTML);
-
-        if (batch.daysLeft <= 3 || batch.isPerishable) {
-            warningCount++;
-            warningList.insertAdjacentHTML('beforeend', cardHTML);
-        }
+        container.innerHTML += itemHTML;
     });
-
-    if (warningCount > 0) {
-        warningZone.classList.remove('hidden');
-    } else {
-        warningZone.classList.add('hidden');
-    }
 }
 
 export function renderAnalytics(stats) {
-    document.getElementById('stat-consumed').textContent = stats.consumed.toFixed(1);
-    document.getElementById('stat-wasted').textContent = stats.wasted.toFixed(1);
-    document.getElementById('stat-money').textContent = stats.moneyLost.toFixed(0);
+    document.getElementById('stat-consumed').textContent = stats.consumed;
+    document.getElementById('stat-wasted').textContent = stats.wasted;
+    document.getElementById('stat-money').textContent = stats.money;
 }

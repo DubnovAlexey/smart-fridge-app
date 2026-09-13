@@ -7,10 +7,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans p-4 md:p-8">
+<body class="bg-slate-50 text-slate-800 font-sans p-4 md:p-8 relative">
 
 <div class="max-w-6xl mx-auto space-y-6">
-
     <header class="bg-white rounded-2xl shadow-sm p-6 flex flex-col md:flex-row justify-between items-center gap-4 border-t-4 border-blue-500">
         <div>
             <h1 class="text-3xl font-black text-blue-600 flex items-center gap-2">
@@ -42,7 +41,6 @@
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
                 <label for="api-key-input" class="block text-xs text-slate-400 mb-1">API-ключ Gemini (AI)</label>
-                <!-- ИЗМЕНЕНИЕ: type="text" вместо password, чтобы браузер не совал сюда автозаполнение -->
                 <input type="text" id="api-key-input" autocomplete="off" placeholder="Введите ключ AI Studio..." class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 text-sm outline-none font-mono">
             </div>
             <div class="flex items-end">
@@ -202,9 +200,12 @@
 
     <section class="bg-white rounded-2xl p-6 shadow-sm">
         <h2 class="text-xl font-bold text-slate-800 mb-6">🧊 Содержимое</h2>
-        <div id="fridge-shelves" class="space-y-8"></div>
+        <div id="fridge-shelves" class="space-y-4"></div>
     </section>
 </div>
+
+<!-- Контейнер для всплывающих уведомлений (Toasts) -->
+<div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-3"></div>
 
 <script type="module" src="./js/app.js"></script>
 </body>
