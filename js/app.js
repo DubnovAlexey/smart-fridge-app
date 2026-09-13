@@ -5,104 +5,119 @@
 // ==============================================================================
 
 // 1. ИМПОРТЫ (Обязательно с расширением .js на конце!)
-// Забираем наши готовые инструменты из других файлов.
 import { FridgeModel } from './models/Fridge.js';
 import { renderFridgeContents } from './ui/render.js';
 import { validateProductData } from './utils/helpers.js';
 
 // 2. ИНИЦИАЛИЗАЦИЯ
-// Создаем реальный объект холодильника по нашему чертежу (Классу).
-// В этот момент срабатывает constructor() в Fridge.js, и данные загружаются из памяти.
 const fridge = new FridgeModel();
-
-// Устанавливаем роль по умолчанию. Мы начинаем как "Родитель".
 let currentRole = 'parent';
 
-// 3. ПОИСК ЭЛЕМЕНТОВ НА СТРАНИЦЕ (Работа с DOM)
-// Мы находим HTML-теги по их ID, чтобы JavaScript мог ими управлять.
+// 3. ПОИСК ЭЛЕМЕНТОВ НА СТРАНИЦЕ (Работа с DOM - Document Object Model)
+// Забираем теги из HTML в переменные JavaScript, чтобы ими управлять.
 const roleSelector = document.getElementById('role-selector');
 const adminPanel = document.getElementById('admin-panel');
 const addFormPanel = document.getElementById('add-form-panel');
 const btnAdd = document.getElementById('btn-add');
 
+// Новые переменные для связи полей Единиц и Количества
+const inputUnit = document.getElementById('p-unit');
+const inputCount = document.getElementById('p-count');
+
 // 4. ФУНКЦИЯ ОБНОВЛЕНИЯ ЭКРАНА
-// Создаем удобную функцию, которая берет посчитанные продукты из Мозга
-// и отдает их Рисовальщику, передавая также текущую роль.
 function updateUI() {
     const batches = fridge.getProcessedBatches();
     renderFridgeContents(batches, currentRole);
 }
 
 // ------------------------------------------------------------------------------
-// 5. СЛУШАТЕЛЬ СОБЫТИЙ: СМЕНА РОЛИ
-// addEventListener "слушает" событие 'change' (когда пользователь выбрал другое значение в выпадающем списке).
+// 5. НОВЫЙ СЛУШАТЕЛЬ (Event Listener): АДАПТАЦИЯ КОЛИЧЕСТВА ПОД ЕДИНИЦЫ
+// Событие 'input' срабатывает при каждом нажатии клавиши в поле "Ед. изм."
+// ------------------------------------------------------------------------------
+inputUnit.addEventListener('input', (event) => {
+    // Получаем то, что ввел пользователь, и переводим в нижний регистр (чтобы "ШТ" и "шт" были одинаковы)
+    const val = event.target.value.toLowerCase().trim();
+
+    // ЕСЛИ выбраны штуки или упаковки
+    if (val === 'шт' || val === 'упак') {
+        // Устанавливаем шаг 1 (разрешаем только целые числа: 1, 2, 3)
+        inputCount.step = '1';
+        // Меняем подсказку в поле (placeholder)
+        inputCount.placeholder = '1, 2...';
+    }
+    // ЕСЛИ выбраны килограммы или литры
+    else if (val === 'кг' || val === 'л') {
+        // Устанавливаем шаг 0.1 (разрешаем дроби: 1.5, 0.2)
+        inputCount.step = '0.1';
+        inputCount.placeholder = '1.5, 0.2...';
+    }
+    // ДЛЯ ВСЕХ ОСТАЛЬНЫХ СЛУЧАЕВ (свой вариант)
+    else {
+        inputCount.step = '0.1'; // Разрешаем дроби на всякий случай
+        inputCount.placeholder = 'Кол-во';
+    }
+});
+
+// ------------------------------------------------------------------------------
+// 6. СЛУШАТЕЛЬ СОБЫТИЙ: СМЕНА РОЛИ
 // ------------------------------------------------------------------------------
 roleSelector.addEventListener('change', (event) => {
-    // event.target.value — это то значение, которое только что выбрали (admin, child, guest, parent)
     currentRole = event.target.value;
 
-    // ЛОГИКА ПРЯТАНЬЯ БЛОКОВ (Контроль доступа)
-    // Если выбрали 'admin', убираем класс 'hidden' (показываем панель), иначе — добавляем 'hidden' (прячем).
     if (currentRole === 'admin') {
         adminPanel.classList.remove('hidden');
     } else {
         adminPanel.classList.add('hidden');
     }
 
-    // Если выбрали 'child' (Ребенок), мы прячем форму добавления продуктов.
-    // Ребенку нельзя добавлять продукты. Остальным — можно.
     if (currentRole === 'child') {
         addFormPanel.classList.add('hidden');
     } else {
         addFormPanel.classList.remove('hidden');
     }
 
-    // После смены роли обязательно перерисовываем полки (чтобы спрятать или показать кнопку "Списать")
     updateUI();
 });
 
 // ------------------------------------------------------------------------------
-// 6. СЛУШАТЕЛЬ СОБЫТИЙ: НАЖАТИЕ КНОПКИ "ДОБАВИТЬ В ХОЛОДИЛЬНИК"
-// Слушаем событие 'click' по зеленой кнопке.
+// 7. СЛУШАТЕЛЬ СОБЫТИЙ: НАЖАТИЕ КНОПКИ "ДОБАВИТЬ В ХОЛОДИЛЬНИК"
 // ------------------------------------------------------------------------------
 btnAdd.addEventListener('click', () => {
 
-    // Считываем то, что пользователь написал в полях ввода (.value)
+    // Считываем значения из полей (Обращение к DOM: .value)
     const name = document.getElementById('p-name').value;
     const category = document.getElementById('p-category').value;
     const count = document.getElementById('p-count').value;
     const unit = document.getElementById('p-unit').value;
     const days = document.getElementById('p-days').value;
 
-    // Для чекбоксов (галочек) мы считываем свойство .checked (возвращает true или false)
     const isPerishable = document.getElementById('p-perishable').checked;
     const isFrozen = document.getElementById('p-frozen').checked;
 
     // ОТПРАВЛЯЕМ ДАННЫЕ НА ФЕЙС-КОНТРОЛЬ (Валидация)
-    // Функция вернет объект, например: { valid: false, error: 'Ошибка' } или { valid: true }
     const validationResult = validateProductData(name, count, days);
 
-    // Если данные НЕ валидны (!validationResult.valid)
     if (!validationResult.valid) {
-        // Выводим системное окно с текстом ошибки и останавливаем работу (return).
         alert(`❌ Ошибка: ${validationResult.error}`);
         return;
     }
 
-    // Если всё отлично, передаем данные в Мозг (Fridge.js) для создания новой партии
+    // Отправляем данные в "Мозг" для расчетов
     fridge.addBatch(name, category, count, unit, days, isPerishable, isFrozen, 0, "");
 
-    // Очищаем поля ввода, чтобы было удобно вводить следующий продукт
+    // Очищаем поля после успешного добавления
     document.getElementById('p-name').value = '';
     document.getElementById('p-count').value = '';
     document.getElementById('p-days').value = '';
+    // Очищаем единицы измерения (ставим пустую строку), чтобы для следующего продукта было пусто
+    document.getElementById('p-unit').value = '';
+
     document.getElementById('p-perishable').checked = false;
     document.getElementById('p-frozen').checked = false;
 
-    // Перерисовываем экран, чтобы новый продукт сразу появился на полке
+    // Даем команду "Рисовальщику" обновить интерфейс
     updateUI();
 });
 
-// 7. ПЕРВЫЙ ЗАПУСК
-// Как только скрипт загрузился, мы один раз вызываем отрисовку, чтобы показать то, что уже есть в памяти.
+// 8. ПЕРВЫЙ ЗАПУСК
 updateUI();

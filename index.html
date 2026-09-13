@@ -5,28 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Умный холодильник 2.0</title>
 
-    <!-- Подключаем Tailwind CSS через CDN (внешнюю ссылку). Это позволяет писать стили прямо в HTML через классы -->
+    <!-- Подключаем Tailwind CSS через CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Подключаем наш будущий кастомный файл стилей (для сложных анимаций, например, пульсации) -->
     <link rel="stylesheet" href="css/style.css">
 </head>
-<!--
-  Классы Tailwind на теге body задают общие стили для всей страницы:
-  bg-slate-50: светло-серый (почти белый) фон
-  text-slate-800: темно-серый цвет текста
-  font-sans: стандартный шрифт без засечек
-  p-4 md:p-8: padding (внутренние отступы) 4 единицы для телефонов и 8 для средних экранов (md)
--->
 <body class="bg-slate-50 text-slate-800 font-sans p-4 md:p-8">
 
-<!-- max-w-6xl ограничивает максимальную ширину контента, mx-auto центрирует его, space-y-6 добавляет отступ по вертикали между секциями -->
 <div class="max-w-6xl mx-auto space-y-6">
 
-    <!-- ========================================== -->
-    <!-- 1. ШАПКА И ВЫБОР РОЛЕЙ                     -->
-    <!-- ========================================== -->
-    <!-- bg-white: белый фон, rounded-2xl: сильное скругление углов, shadow-sm: легкая тень, flex: гибкий контейнер -->
+    <!-- 1. ШАПКА И ВЫБОР РОЛЕЙ -->
     <header class="bg-white rounded-2xl shadow-sm p-6 flex flex-col md:flex-row justify-between items-center gap-4">
         <h1 class="text-3xl font-black text-blue-600 flex items-center gap-2">
             ❄️ Умный холодильник
@@ -34,7 +21,6 @@
 
         <div class="flex items-center gap-3">
             <label for="role-selector" class="text-sm font-medium text-slate-500">Пользователь:</label>
-            <!-- Селектор ролей. При изменении значения (через JS) мы будем скрывать или показывать части интерфейса -->
             <select id="role-selector" class="bg-slate-100 border-none rounded-lg px-4 py-2 font-semibold text-slate-700 outline-none cursor-pointer">
                 <option value="parent">👨‍👩‍👧 Родитель</option>
                 <option value="admin">🛠️ Админ</option>
@@ -44,37 +30,28 @@
         </div>
     </header>
 
-    <!-- ========================================== -->
     <!-- 2. ПАНЕЛЬ АДМИНИСТРАТОРА (Скрыта по умолчанию) -->
-    <!-- ========================================== -->
-    <!-- Класс 'hidden' изначально скрывает этот блок (display: none). Мы снимем его через JS, если выберут роль "Админ" -->
     <section id="admin-panel" class="hidden bg-slate-800 text-white rounded-2xl p-6 shadow-sm">
         <h2 class="text-xl font-bold mb-4 flex items-center gap-2">🛠️ Системные настройки (Admin)</h2>
-        <!-- grid grid-cols-1 md:grid-cols-3: на телефоне элементы идут друг под другом (1 колонка), на ПК - в 3 колонки -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-                <label class="block text-xs text-slate-400 mb-1">API-ключ Gemini (AI)</label>
+                <label for="api-key-input" class="block text-xs text-slate-400 mb-1">API-ключ Gemini (AI)</label>
                 <input type="password" id="api-key-input" placeholder="Введите ключ..." class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 text-sm outline-none">
             </div>
-            <!-- Заглушка под будущую интеграцию -->
             <div class="flex items-end">
                 <button class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-semibold w-full transition">☁️ Облако (Заглушка)</button>
             </div>
-            <!-- Заглушка под SMS -->
             <div class="flex items-end">
                 <button class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-sm font-semibold w-full transition">📱 SMS (Заглушка)</button>
             </div>
         </div>
     </section>
 
-    <!-- ========================================== -->
-    <!-- 3. ПАНЕЛЬ АНАЛИТИКИ И РАБОТЫ С CSV         -->
-    <!-- ========================================== -->
+    <!-- 3. ПАНЕЛЬ АНАЛИТИКИ И РАБОТЫ С CSV -->
     <section id="analytics-panel" class="bg-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
         <div class="flex-1">
             <h2 class="text-lg font-bold text-slate-700 mb-2">📊 Статистика</h2>
             <div class="flex gap-6 text-sm">
-                <!-- Сюда JS будет подставлять цифры из Analytics.js -->
                 <div class="text-green-600 font-semibold">✅ Съедено: <span id="stat-consumed">0</span></div>
                 <div class="text-red-500 font-semibold">🗑 Списано: <span id="stat-wasted">0</span></div>
                 <div class="text-slate-500 font-semibold">💸 Потери: <span id="stat-money">0</span> ₽</div>
@@ -86,10 +63,7 @@
         </div>
     </section>
 
-    <!-- ========================================== -->
-    <!-- 4. ИНТЕРАКТИВНЫЙ БЛОК AI-ШЕФА (Gemini)     -->
-    <!-- ========================================== -->
-    <!-- bg-gradient-to-r: градиент слева направо. border: граница. -->
+    <!-- 4. ИНТЕРАКТИВНЫЙ БЛОК AI-ШЕФА -->
     <section id="ai-chef-panel" class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 shadow-sm">
         <div class="flex justify-between items-center gap-4">
             <div>
@@ -100,31 +74,25 @@
                 🍳 Придумать рецепт
             </button>
         </div>
-        <!-- Окно для вывода рецепта от ИИ. Изначально скрыто (hidden) -->
         <div id="ai-response-box" class="hidden mt-4 bg-white rounded-xl p-4 text-sm text-slate-700 border border-blue-50"></div>
     </section>
 
-    <!-- ========================================== -->
-    <!-- 5. ФОРМА ДОБАВЛЕНИЯ ПРОДУКТОВ              -->
-    <!-- ========================================== -->
+    <!-- 5. ФОРМА ДОБАВЛЕНИЯ ПРОДУКТОВ -->
     <section id="add-form-panel" class="bg-white rounded-2xl p-6 shadow-sm">
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-xl font-bold text-slate-800">➕ Добавить продукты</h2>
-            <!-- Заглушка под сканер штрихкодов для мобильной версии -->
             <button class="text-slate-500 hover:text-slate-800 transition">📷 Штрих-код (Заглушка)</button>
         </div>
 
-        <!-- Сетка формы: 5 колонок на больших экранах, 1 на мобильных -->
         <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
 
             <div>
-                <!-- block: элемент занимает всю ширину. uppercase tracking-wider: заглавные буквы с широким интервалом -->
-                <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Название</label>
+                <label for="p-name" class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Название</label>
                 <input type="text" id="p-name" placeholder="Напр. Кефир" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none">
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Категория</label>
+                <label for="p-category" class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Категория</label>
                 <select id="p-category" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none">
                     <option value="dairy">🥛 Молочка и Яйца</option>
                     <option value="meat">🥩 Мясо и Рыба</option>
@@ -135,25 +103,26 @@
                 </select>
             </div>
 
+            <!-- Блок Единиц измерения и Количества. Теперь Ед. изм. идет первыми! -->
             <div class="flex gap-2">
                 <div class="w-1/2">
-                    <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Кол-во</label>
-                    <input type="number" id="p-count" placeholder="1" step="0.1" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none">
-                </div>
-                <div class="w-1/2">
-                    <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Ед. изм.</label>
-                    <!-- datalist позволяет выбирать из списка ИЛИ печатать свой вариант (чашки, щепотки) -->
+                    <label for="p-unit" class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Ед. изм.</label>
                     <input type="text" id="p-unit" list="unit-options" placeholder="шт" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none">
                     <datalist id="unit-options">
                         <option value="шт">
                         <option value="кг">
                         <option value="л">
+                        <option value="упак">
                     </datalist>
+                </div>
+                <div class="w-1/2">
+                    <label for="p-count" class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Кол-во</label>
+                    <input type="number" id="p-count" placeholder="1" step="1" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none">
                 </div>
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Срок (Дней)</label>
+                <label for="p-days" class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Срок (Дней)</label>
                 <input type="number" id="p-days" placeholder="Напр. 5" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none">
             </div>
 
@@ -164,7 +133,6 @@
             </div>
         </div>
 
-        <!-- Галочки (Чекбоксы). Мы проверим их состояние в app.js при добавлении продукта -->
         <div class="mt-4 flex gap-6 text-sm font-medium text-slate-600">
             <label class="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" id="p-perishable" class="w-4 h-4 text-blue-600 rounded">
@@ -177,13 +145,9 @@
         </div>
     </section>
 
-    <!-- ========================================== -->
-    <!-- 6. ПОЛКИ ХОЛОДИЛЬНИКА (Вывод контента)     -->
-    <!-- ========================================== -->
+    <!-- 6. ПОЛКИ ХОЛОДИЛЬНИКА -->
     <section class="bg-white rounded-2xl p-6 shadow-sm">
         <h2 class="text-xl font-bold text-slate-800 mb-6">🧊 Содержимое</h2>
-
-        <!-- В этот div с id="fridge-shelves" наш файл render.js будет генерировать HTML-код карточек -->
         <div id="fridge-shelves" class="space-y-8">
             <p class="text-slate-400 text-center py-10">Холодильник пока пуст. Загрузите продукты!</p>
         </div>
@@ -191,10 +155,6 @@
 
 </div>
 
-<!--
-  КРИТИЧЕСКИ ВАЖНО: type="module" говорит браузеру, что app.js может использовать 'import' и 'export'.
-  Без этого модульная архитектура ES6 не работает.
--->
 <script type="module" src="./js/app.js"></script>
 </body>
 </html>
