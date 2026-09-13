@@ -7,13 +7,10 @@ import { FridgeModel } from './models/Fridge.js';
 import { AnalyticsModel } from './models/Analytics.js';
 import { renderFridgeContents, renderAnalytics } from './ui/render.js';
 import { validateProductData } from './utils/helpers.js';
-import { askGeminiRecipe } from './utils/aiChef.js'; // Подключаем ИИ-Шефа
+import { askGeminiRecipe } from './utils/aiChef.js';
+import { exportToCSV, importFromCSV } from './utils/csvManager.js';
 
-const PASSWORDS = {
-    admin: 'admin2026',
-    user: '1234'
-};
-
+const PASSWORDS = { admin: 'admin2026', user: '1234' };
 const PERMISSIONS = {
     admin: { canAdd: true, canTake: true, canWaste: true, canSeeAnalytics: true, canSeeAdmin: true, canManageRights: true },
     user:  { canAdd: true, canTake: true, canWaste: true, canSeeAnalytics: true, canSeeAdmin: false, canManageRights: true },
@@ -25,7 +22,7 @@ const fridge = new FridgeModel();
 const analytics = new AnalyticsModel();
 
 let currentRole = 'guest';
-let editingBatchId = null; // НОВАЯ ПЕРЕМЕННАЯ: запоминаем, какой продукт сейчас редактируем
+let editingBatchId = null;
 
 const roleSelector = document.getElementById('role-selector');
 const adminPanel = document.getElementById('admin-panel');
@@ -37,18 +34,19 @@ const inputUnit = document.getElementById('p-unit');
 const inputCount = document.getElementById('p-count');
 const inputDays = document.getElementById('p-days');
 const inputDate = document.getElementById('p-date');
-const apiKeyInput = document.getElementById('api-key-input'); // Поле ввода ключа
+const apiKeyInput = document.getElementById('api-key-input');
+
+const btnExport = document.getElementById('btn-export-csv');
+const btnImport = document.getElementById('btn-import-csv');
+const inputCsv = document.getElementById('input-csv');
 
 const chkGuestTake = document.getElementById('perm-guest-take');
 const chkGuestWaste = document.getElementById('perm-guest-waste');
 const chkChildTake = document.getElementById('perm-child-take');
 
 roleSelector.value = currentRole;
-
-// При запуске программы проверяем, сохранен ли у нас уже ключ Gemini
 const savedKey = localStorage.getItem('gemini_api_key');
 if (savedKey) apiKeyInput.value = savedKey;
-
 
 function updateUI() {
     const perms = PERMISSIONS[currentRole];
@@ -68,16 +66,13 @@ inputDate.addEventListener('input', () => { if (inputDate.value !== '') inputDay
 roleSelector.addEventListener('change', (event) => {
     const selectedRole = event.target.value;
     let isAuthenticated = true;
-
     if (selectedRole === 'admin') {
         const pass = prompt('Вход для Администратора. Введите пароль:');
         if (pass !== PASSWORDS.admin) isAuthenticated = false;
-    }
-    else if (selectedRole === 'user') {
+    } else if (selectedRole === 'user') {
         const pass = prompt('Вход для Пользователя. Введите пароль:');
         if (pass !== PASSWORDS.user) isAuthenticated = false;
     }
-
     if (isAuthenticated) {
         currentRole = selectedRole;
         updateUI();
@@ -91,20 +86,14 @@ chkGuestTake.addEventListener('change', (e) => { PERMISSIONS.guest.canTake = e.t
 chkGuestWaste.addEventListener('change', (e) => { PERMISSIONS.guest.canWaste = e.target.checked; updateUI(); });
 chkChildTake.addEventListener('change', (e) => { PERMISSIONS.child.canTake = e.target.checked; updateUI(); });
 
-// ==============================================================================
-// ОБРАБОТКА КЛИКОВ (Взять, Списать, Изменить)
-// ==============================================================================
 function handleProductAction(event) {
     const btn = event.target.closest('button');
     if (!btn) return;
-
     const id = btn.dataset.id;
     const action = btn.dataset.action;
     if (!id || !action) return;
-
     const batch = fridge.getBatchById(id);
     if (!batch) return;
-
     const perms = PERMISSIONS[currentRole];
 
     if (action === 'consume' && perms.canTake) {
@@ -130,36 +119,28 @@ function handleProductAction(event) {
             updateUI();
         }
     }
-    // НОВОЕ ДЕЙСТВИЕ: Редактировать (Update)
     else if (action === 'edit' && perms.canAdd) {
-        // 1. Заполняем верхнюю форму данными из карточки
         document.getElementById('p-name').value = batch.name;
         document.getElementById('p-category').value = batch.category;
         document.getElementById('p-count').value = batch.count;
         document.getElementById('p-unit').value = batch.unit;
-        document.getElementById('p-days').value = batch.daysLeft; // Для удобства выводим остаток дней
+        document.getElementById('p-days').value = batch.daysLeft;
         document.getElementById('p-date').value = '';
         document.getElementById('p-price').value = batch.price || '';
         document.getElementById('p-note').value = batch.note || '';
         document.getElementById('p-perishable').checked = batch.isPerishable;
         document.getElementById('p-frozen').checked = batch.isFrozen;
 
-        // 2. Запоминаем, что мы сейчас РЕДАКТИРУЕМ, а не добавляем новое
         editingBatchId = id;
-
-        // 3. Меняем внешний вид кнопки
         btnAdd.textContent = '💾 Сохранить изменения';
         btnAdd.classList.replace('bg-green-500', 'bg-blue-600');
         btnAdd.classList.replace('hover:bg-green-600', 'hover:bg-blue-700');
-
-        // 4. Плавно прокручиваем экран наверх к форме
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
 
 document.getElementById('fridge-shelves').addEventListener('click', handleProductAction);
 document.getElementById('warning-list').addEventListener('click', handleProductAction);
-
 
 inputUnit.addEventListener('change', (event) => {
     const val = event.target.value;
@@ -172,9 +153,6 @@ inputUnit.addEventListener('change', (event) => {
     }
 });
 
-// ==============================================================================
-// КНОПКА СОХРАНИТЬ / ДОБАВИТЬ
-// ==============================================================================
 btnAdd.addEventListener('click', () => {
     if (!PERMISSIONS[currentRole].canAdd) return;
 
@@ -190,33 +168,23 @@ btnAdd.addEventListener('click', () => {
     const isFrozen = document.getElementById('p-frozen').checked;
 
     const validationResult = validateProductData(name, count, days, exactDate);
-    if (!validationResult.valid) {
-        alert(`❌ Ошибка: ${validationResult.error}`);
-        return;
-    }
+    if (!validationResult.valid) { alert(`❌ Ошибка: ${validationResult.error}`); return; }
 
-    // Если мы в режиме редактирования (editingBatchId не пустой)
     if (editingBatchId) {
         const msInDay = 24 * 60 * 60 * 1000;
         const expirationDate = exactDate ? new Date(exactDate).getTime() : Date.now() + (days * msInDay);
-
         fridge.updateFullBatch(editingBatchId, {
             name, category, count: parseFloat(count), unit,
             expirationDate, isPerishable, isFrozen, price: parseFloat(price) || 0, note
         });
-
-        // Сбрасываем режим редактирования и возвращаем кнопку в исходное состояние
         editingBatchId = null;
         btnAdd.textContent = 'В холодильник';
         btnAdd.classList.replace('bg-blue-600', 'bg-green-500');
         btnAdd.classList.replace('hover:bg-blue-700', 'hover:bg-green-600');
-    }
-    // Иначе это просто добавление нового продукта
-    else {
+    } else {
         fridge.addBatch(name, category, count, unit, days, exactDate, isPerishable, isFrozen, price, note);
     }
 
-    // Очищаем форму
     document.getElementById('p-name').value = '';
     document.getElementById('p-count').value = '';
     document.getElementById('p-days').value = '';
@@ -232,39 +200,50 @@ btnAdd.addEventListener('click', () => {
 });
 
 // ==============================================================================
-// ИНТЕГРАЦИЯ AI-ШЕФА (GEMINI)
+// РЕКЛАМНАЯ КАМПАНИЯ (ТЕСТ ФАЛЬШИВОЙ ДВЕРИ)
 // ==============================================================================
-document.getElementById('btn-ask-ai').addEventListener('click', async () => {
+const v2Stubs = document.querySelectorAll('.v2-stub');
+v2Stubs.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.preventDefault(); // Останавливаем стандартное поведение кнопки
+        alert('🚀 ЭКСКЛЮЗИВНО В ВЕРСИИ 2.0!\n\nВы нажали на премиум-функцию. В следующей версии проекта (ветка v2-cloud-backend) вас ждут:\n\n• Облачная синхронизация Firebase\n• Индивидуальные профили с паролями\n• Распознавание чеков по фото (OCR)\n• Мобильное приложение (PWA)\n• Интеграция с базой ГОСТов OpenFoodFacts\n\nОставайтесь с нами! Оцените Версию 1.0 на "Отлично" 😉');
+    });
+});
 
-    // Берем ключ из инпута, ИЛИ из сейфа, если инпут пустой
-    const apiKey = apiKeyInput.value.trim() || localStorage.getItem('gemini_api_key');
+// ==============================================================================
+// РАБОТА С CSV
+// ==============================================================================
+btnExport.addEventListener('click', () => {
+    exportToCSV(fridge.batches);
+});
 
-    if (!apiKey) {
-        alert('Пожалуйста, введите ваш API-ключ Gemini в Панели Админа.');
-        return;
+btnImport.addEventListener('click', () => {
+    inputCsv.click();
+});
+
+inputCsv.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        importFromCSV(file, fridge, updateUI);
+        inputCsv.value = '';
     }
+});
 
-    // Сохраняем ключ в сейф навсегда, чтобы не вводить его каждый раз
+document.getElementById('btn-ask-ai').addEventListener('click', async () => {
+    const apiKey = apiKeyInput.value.trim() || localStorage.getItem('gemini_api_key');
+    if (!apiKey) { alert('Пожалуйста, введите ваш API-ключ Gemini в Панели Админа.'); return; }
     localStorage.setItem('gemini_api_key', apiKey);
 
     const responseBox = document.getElementById('ai-response-box');
     const btnAskAi = document.getElementById('btn-ask-ai');
-
-    // Показываем окно и крутилку загрузки
     responseBox.classList.remove('hidden');
     responseBox.innerHTML = '<i>⏳ Нейросеть изучает ваш холодильник... Это займет пару секунд.</i>';
-    btnAskAi.disabled = true; // Блокируем кнопку, чтобы не нажали 10 раз
+    btnAskAi.disabled = true;
 
-    // Делаем запрос к нашей новой функции
     const recipe = await askGeminiRecipe(apiKey, fridge.getProcessedBatches());
-
-    // Простая замена Markdown: превращаем **текст** в жирный HTML <b>текст</b>
     const formattedRecipe = recipe.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
-
-    // Выводим результат
     responseBox.innerHTML = formattedRecipe;
-    btnAskAi.disabled = false; // Разблокируем кнопку
+    btnAskAi.disabled = false;
 });
 
-// 9. ПЕРВЫЙ ЗАПУСК
 updateUI();
