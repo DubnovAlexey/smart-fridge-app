@@ -133,7 +133,6 @@ function handleProductAction(event) {
         document.getElementById('p-count').value = batch.count;
         document.getElementById('p-unit').value = batch.unit;
 
-        // Исправление бага с датой: конвертируем timestamp обратно в строку для инпута
         const expDate = new Date(batch.expirationDate);
         const yyyy = expDate.getFullYear();
         const mm = String(expDate.getMonth() + 1).padStart(2, '0');
@@ -156,7 +155,6 @@ function handleProductAction(event) {
 }
 
 document.getElementById('fridge-shelves').addEventListener('click', handleProductAction);
-document.getElementById('warning-list').addEventListener('click', handleProductAction);
 
 inputUnit.addEventListener('change', (event) => {
     const val = event.target.value;
@@ -261,5 +259,32 @@ async function handleAiRequest(mode) {
 
 document.getElementById('btn-ask-ai-rescue').addEventListener('click', () => handleAiRequest('rescue'));
 document.getElementById('btn-ask-ai-all').addEventListener('click', () => handleAiRequest('all'));
+
+// ==============================================================================
+// ЛОГИКА ОБУЧЕНИЯ ПОЛЬЗОВАТЕЛЯ (ONBOARDING)
+// ==============================================================================
+const modalInstruction = document.getElementById('instruction-modal');
+const btnInstruction = document.getElementById('btn-instruction');
+const btnCloseInstruction = document.getElementById('btn-close-instruction');
+const btnUnderstand = document.getElementById('btn-understand');
+
+function openInstruction() {
+    modalInstruction.classList.remove('hidden');
+}
+
+function closeInstruction() {
+    modalInstruction.classList.add('hidden');
+    // Запоминаем, что пользователь уже видел инструкцию
+    localStorage.setItem('fridge_instruction_seen', 'true');
+}
+
+btnInstruction.addEventListener('click', openInstruction);
+btnCloseInstruction.addEventListener('click', closeInstruction);
+btnUnderstand.addEventListener('click', closeInstruction);
+
+// Показываем автоматически только при самом первом заходе
+if (!localStorage.getItem('fridge_instruction_seen')) {
+    openInstruction();
+}
 
 updateUI();
