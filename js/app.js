@@ -45,7 +45,8 @@ const chkGuestWaste = document.getElementById('perm-guest-waste');
 const chkChildTake = document.getElementById('perm-child-take');
 
 roleSelector.value = currentRole;
-const savedKey = localStorage.getItem('gemini_api_key');
+
+const savedKey = sessionStorage.getItem('gemini_api_key');
 if (savedKey) apiKeyInput.value = savedKey;
 
 function updateUI() {
@@ -66,6 +67,7 @@ inputDate.addEventListener('input', () => { if (inputDate.value !== '') inputDay
 roleSelector.addEventListener('change', (event) => {
     const selectedRole = event.target.value;
     let isAuthenticated = true;
+
     if (selectedRole === 'admin') {
         const pass = prompt('Вход для Администратора. Введите пароль:');
         if (pass !== PASSWORDS.admin) isAuthenticated = false;
@@ -73,8 +75,13 @@ roleSelector.addEventListener('change', (event) => {
         const pass = prompt('Вход для Пользователя. Введите пароль:');
         if (pass !== PASSWORDS.user) isAuthenticated = false;
     }
+
     if (isAuthenticated) {
         currentRole = selectedRole;
+        if (currentRole !== 'admin') {
+            sessionStorage.removeItem('gemini_api_key');
+            apiKeyInput.value = '';
+        }
         updateUI();
     } else {
         alert('❌ Неверный пароль! Доступ запрещен.');
@@ -124,8 +131,16 @@ function handleProductAction(event) {
         document.getElementById('p-category').value = batch.category;
         document.getElementById('p-count').value = batch.count;
         document.getElementById('p-unit').value = batch.unit;
-        document.getElementById('p-days').value = batch.daysLeft;
-        document.getElementById('p-date').value = '';
+
+        // Преобразуем timestamp в точную дату формата YYYY-MM-DD для поля ввода
+        const expDate = new Date(batch.expirationDate);
+        const yyyy = expDate.getFullYear();
+        const mm = String(expDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(expDate.getDate()).padStart(2, '0');
+
+        document.getElementById('p-date').value = `${yyyy}-${mm}-${dd}`;
+        document.getElementById('p-days').value = '';
+
         document.getElementById('p-price').value = batch.price || '';
         document.getElementById('p-note').value = batch.note || '';
         document.getElementById('p-perishable').checked = batch.isPerishable;
@@ -214,41 +229,33 @@ inputCsv.addEventListener('change', (e) => {
     if (file) { importFromCSV(file, fridge, updateUI); inputCsv.value = ''; }
 });
 
-// ==============================================================================
-// НОВАЯ ЛОГИКА AI-ШЕФА (Поддержка двух режимов)
-// ==============================================================================
 async function handleAiRequest(mode) {
-    const apiKey = apiKeyInput.value.trim() || localStorage.getItem('gemini_api_key');
+    const apiKey = apiKeyInput.value.trim() || sessionStorage.getItem('gemini_api_key');
     if (!apiKey) { alert('Пожалуйста, введите ваш API-ключ Gemini в Панели Админа.'); return; }
-    localStorage.setItem('gemini_api_key', apiKey);
+
+    sessionStorage.setItem('gemini_api_key', apiKey);
 
     const responseBox = document.getElementById('ai-response-box');
     const btnRescue = document.getElementById('btn-ask-ai-rescue');
     const btnAll = document.getElementById('btn-ask-ai-all');
 
-    // Блокируем кнопки и показываем текст загрузки
     responseBox.classList.remove('hidden');
-    responseBox.innerHTML = '<i>⏳ Нейросеть составляет меню из 5-7 рецептов... Это может занять до 15 секунд. Пожалуйста, подождите.</i>';
+    responseBox.innerHTML = '<i>⏳ Нейросеть составляет меню из 5-7 рецептов... Пожалуйста, подождите.</i>';
     btnRescue.disabled = true;
     btnAll.disabled = true;
 
-    // Делаем запрос к API
     const recipe = await askGeminiRecipe(apiKey, fridge.getProcessedBatches(), mode);
 
-    // Форматируем ответ (превращаем звездочки в жирный текст, а тире "---" в HTML-линии)
     let formattedRecipe = recipe
         .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
         .replace(/\n/g, '<br>')
         .replace(/---/g, '<hr class="my-4 border-indigo-100">');
 
     responseBox.innerHTML = formattedRecipe;
-
-    // Разблокируем кнопки
     btnRescue.disabled = false;
     btnAll.disabled = false;
 }
 
-// Вешаем слушателей на обе новые кнопки
 document.getElementById('btn-ask-ai-rescue').addEventListener('click', () => handleAiRequest('rescue'));
 document.getElementById('btn-ask-ai-all').addEventListener('click', () => handleAiRequest('all'));
 
