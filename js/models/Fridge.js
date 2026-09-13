@@ -13,7 +13,6 @@ export class FridgeModel {
     addBatch(name, category, count, unit, daysValid, exactDate, isPerishable, isFrozen, price, note) {
         const now = Date.now();
         const msInDay = 24 * 60 * 60 * 1000;
-
         let expirationDate;
 
         if (exactDate) {
@@ -74,13 +73,14 @@ export class FridgeModel {
     }
 
     // ==============================================================================
-    // НОВАЯ ФУНКЦИЯ (UPDATE): Обновление комментария
+    // НОВАЯ ФУНКЦИЯ (UPDATE): Полное переписывание всех данных продукта
     // ==============================================================================
-    updateBatchNote(id, newNote) {
-        const batch = this.getBatchById(id); // Находим продукт
-        if (batch) {
-            batch.note = newNote; // Перезаписываем заметку
-            saveFridgeData(this.batches); // Сохраняем в Сейф
+    updateFullBatch(id, newData) {
+        const index = this.batches.findIndex(b => b.id === id);
+        if (index !== -1) {
+            // Берем старую коробку, высыпаем из нее всё, и сверху кладем новые данные (перезаписываем)
+            this.batches[index] = { ...this.batches[index], ...newData };
+            saveFridgeData(this.batches);
         }
     }
 }

@@ -32,7 +32,6 @@ export function renderFridgeContents(batches, perms) {
 
     batches.forEach(batch => {
         const badge = getStatusBadge(batch.daysLeft);
-
         const addedDate = new Date(batch.addedAt).toLocaleDateString('ru-RU');
         const expDate = new Date(batch.expirationDate).toLocaleDateString('ru-RU');
 
@@ -58,10 +57,10 @@ export function renderFridgeContents(batches, perms) {
                     </div>
                     
                     <div class="flex flex-col gap-2">
-                        <!-- НОВАЯ КНОПКА: Редактировать заметку (Доступна тем, кто может добавлять продукты) -->
+                        <!-- ИЗМЕНЕНО: Кнопка "Изменить" (data-action="edit") -->
                         ${perms.canAdd ? `
                             <button class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-1.5 px-3 rounded transition" 
-                                    data-id="${batch.id}" data-action="edit-note">📝 Заметка</button>
+                                    data-id="${batch.id}" data-action="edit">✏️ Изменить</button>
                         ` : ''}
 
                         ${perms.canTake ? `
