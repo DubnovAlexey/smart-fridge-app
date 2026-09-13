@@ -1,6 +1,6 @@
 // ==============================================================================
 // ФАЙЛ: js/utils/aiChef.js
-// НАЗНАЧЕНИЕ: Интеграция с нейросетью Gemini (ИИ-повар).
+// НАЗНАЧЕНИЕ: Интеграция с нейросетью Gemini (актуальная модель gemini-3.5-flash)
 // ==============================================================================
 
 export async function askGeminiRecipe(apiKey, fridgeBatches, mode = 'all') {
@@ -23,28 +23,30 @@ export async function askGeminiRecipe(apiKey, fridgeBatches, mode = 'all') {
 
     const fullIngredients = targetProducts.map(b => `${b.name} (${b.count} ${b.unit})`).join(', ');
 
-    const promptText = `Я хочу приготовить еду. ${promptContext} ${fullIngredients}. 
-    Придумай 5-7 РАЗНЫХ простых и вкусных рецептов. 
-    ${mode === 'rescue' ? 'Сделай акцент на использовании этих продуктов, чтобы спасти их от пропадания.' : 'Используй любые удачные сочетания.'}
-    Важно: использовать абсолютно всё в одном блюде НЕ НУЖНО. Выбирай только то, что логично сочетается.
-    Напиши ответ четко структурированно. Для КАЖДОГО из рецептов укажи:
-    1. Название блюда.
-    2. Дополнительные базовые ингредиенты.
-    3. 3-4 кратких шага приготовления.
-    Разделяй рецепты горизонтальной линией (---).`;
+    const promptText = `I want to cook food. ${promptContext} ${fullIngredients}. 
+    Please come up with 5-7 DIFFERENT simple and delicious recipes in Russian. 
+    ${mode === 'rescue' ? 'Focus on using these specific products to save them from spoiling.' : 'Use any good combinations.'}
+    Do not use everything in one dish. Choose logical combinations.
+    Format the response clearly with structured steps for each recipe, separated by horizontal lines (---).`;
 
     try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        // Используем актуальное имя модели из документации Google
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent`;
 
         const response = await fetch(url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-goog-api-key': apiKey.trim()
+            },
             body: JSON.stringify({
                 contents: [{ parts: [{ text: promptText }] }]
             })
         });
 
         if (!response.ok) {
+            const errText = await response.text();
+            console.error("Детали ошибки Google:", errText);
             throw new Error(`Ошибка API: ${response.status}`);
         }
 
@@ -54,7 +56,6 @@ export async function askGeminiRecipe(apiKey, fridgeBatches, mode = 'all') {
     } catch (error) {
         console.error("Сбой при обращении к ИИ:", error);
 
-        // Вместо выдуманного рецепта возвращаем честную ошибку, которая красиво отрисуется в интерфейсе
-        return `❌ **Ой, AI-Шеф временно недоступен!**\n\nПохоже, сервер Google не отвечает или возникла проблема с сетью. \n\n*Что можно сделать:*\n1. Проверьте правильность API-ключа в Настройках Админа.\n2. Убедитесь, что у вас работает интернет (или включен VPN, если сервисы Google заблокированы в вашем регионе).\n\n*(Код ошибки: ${error.message})*`;
+        return `❌ **Ой, AI-Шеф временно недоступен!**\n\nСервер отклонил запрос к модели. Проверьте правильность скопированного ключа.\n\n*(Код ошибки: ${error.message})*`;
     }
 }
