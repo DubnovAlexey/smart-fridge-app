@@ -14,7 +14,6 @@ const CATEGORY_NAMES = {
     other: '📦 Прочее'
 };
 
-// ОБРАТИТЕ ВНИМАНИЕ: Теперь мы передаем объект perms (permissions - права)
 export function renderFridgeContents(batches, perms) {
     const shelvesContainer = document.getElementById('fridge-shelves');
     const warningList = document.getElementById('warning-list');
@@ -34,14 +33,23 @@ export function renderFridgeContents(batches, perms) {
     batches.forEach(batch => {
         const badge = getStatusBadge(batch.daysLeft);
 
+        const addedDate = new Date(batch.addedAt).toLocaleDateString('ru-RU');
+        const expDate = new Date(batch.expirationDate).toLocaleDateString('ru-RU');
+
         const cardHTML = `
             <div class="bg-white border border-slate-100 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center shadow-sm hover:shadow-md transition gap-4">
                 <div>
                     <h3 class="text-lg font-bold text-slate-800">${batch.name}</h3>
-                    <p class="text-xs text-slate-500 mb-2">${CATEGORY_NAMES[batch.category]} • Положено: ${new Date(batch.addedAt).toLocaleDateString('ru-RU')}</p>
-                    <span class="px-3 py-1 text-xs font-bold border rounded-full ${badge.classes}">
-                        ${badge.text}
-                    </span>
+                    <p class="text-xs text-slate-500 mb-1">${CATEGORY_NAMES[batch.category]} • Положено: ${addedDate} • Годен до: <b>${expDate}</b></p>
+                    
+                    ${batch.note ? `<p class="text-xs text-slate-600 mb-2 italic bg-slate-50 inline-block px-2 py-1 rounded border border-slate-200">📝 ${batch.note}</p>` : ''}
+                    
+                    <div class="mt-2 flex items-center gap-2">
+                        <span class="px-3 py-1 text-xs font-bold border rounded-full ${badge.classes}">
+                            ${badge.text}
+                        </span>
+                        ${batch.price > 0 ? `<span class="text-xs font-semibold text-slate-500">💰 ${batch.price} ₽</span>` : ''}
+                    </div>
                 </div>
                 <div class="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
                     <div class="text-right">
@@ -50,15 +58,17 @@ export function renderFridgeContents(batches, perms) {
                     </div>
                     
                     <div class="flex flex-col gap-2">
-                        <!-- Динамическое рисование кнопок на основе переданных прав (perms) -->
-                        
-                        <!-- Если у текущей роли есть право canTake, рисуем кнопку Взять -->
+                        <!-- НОВАЯ КНОПКА: Редактировать заметку (Доступна тем, кто может добавлять продукты) -->
+                        ${perms.canAdd ? `
+                            <button class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-1.5 px-3 rounded transition" 
+                                    data-id="${batch.id}" data-action="edit-note">📝 Заметка</button>
+                        ` : ''}
+
                         ${perms.canTake ? `
                             <button class="bg-blue-100 hover:bg-blue-200 text-blue-700 text-xs font-bold py-1.5 px-3 rounded transition" 
                                     data-id="${batch.id}" data-action="consume">➖ Взять</button>
                         ` : ''}
                         
-                        <!-- Если у текущей роли есть право canWaste, рисуем кнопку Списать -->
                         ${perms.canWaste ? `
                             <button class="bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold py-1.5 px-3 rounded transition" 
                                     data-id="${batch.id}" data-action="waste">🗑 Списать</button>

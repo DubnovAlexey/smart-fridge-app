@@ -10,22 +10,15 @@ export class FridgeModel {
         this.batches = loadFridgeData();
     }
 
-    // ДОБАВЛЕНО: параметр exactDate
     addBatch(name, category, count, unit, daysValid, exactDate, isPerishable, isFrozen, price, note) {
         const now = Date.now();
         const msInDay = 24 * 60 * 60 * 1000;
 
         let expirationDate;
 
-        // ЛОГИКА ВЫБОРА ДАТЫ:
-        // Если пользователь выбрал дату в календаре (например, "2026-10-15")
         if (exactDate) {
-            // Класс 'new Date()' переводит текстовую дату в системный формат,
-            // а '.getTime()' делает из неё миллисекунды (Timestamp)
             expirationDate = new Date(exactDate).getTime();
-        }
-        // Иначе высчитываем дату прибавлением дней к текущему моменту
-        else {
+        } else {
             expirationDate = now + (daysValid * msInDay);
         }
 
@@ -77,6 +70,17 @@ export class FridgeModel {
         if (batch) {
             batch.count = parseFloat(newCount);
             saveFridgeData(this.batches);
+        }
+    }
+
+    // ==============================================================================
+    // НОВАЯ ФУНКЦИЯ (UPDATE): Обновление комментария
+    // ==============================================================================
+    updateBatchNote(id, newNote) {
+        const batch = this.getBatchById(id); // Находим продукт
+        if (batch) {
+            batch.note = newNote; // Перезаписываем заметку
+            saveFridgeData(this.batches); // Сохраняем в Сейф
         }
     }
 }

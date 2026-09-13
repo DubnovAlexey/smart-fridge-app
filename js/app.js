@@ -33,8 +33,6 @@ const addFormPanel = document.getElementById('add-form-panel');
 const btnAdd = document.getElementById('btn-add');
 const inputUnit = document.getElementById('p-unit');
 const inputCount = document.getElementById('p-count');
-
-// НОВЫЕ ПЕРЕМЕННЫЕ: Поля дат
 const inputDays = document.getElementById('p-days');
 const inputDate = document.getElementById('p-date');
 
@@ -56,23 +54,13 @@ function updateUI() {
     renderAnalytics(analytics.getStats());
 }
 
-// ------------------------------------------------------------------------------
-// НОВЫЙ БЛОК: ВЗАИМОИСКЛЮЧЕНИЕ КАЛЕНДАРЯ И ДНЕЙ
-// ------------------------------------------------------------------------------
-// Если пользователь вводит дни руками, очищаем календарь
 inputDays.addEventListener('input', () => {
-    if (inputDays.value !== '') {
-        inputDate.value = '';
-    }
+    if (inputDays.value !== '') inputDate.value = '';
 });
 
-// Если пользователь выбирает дату в календаре, очищаем ручной ввод дней
 inputDate.addEventListener('input', () => {
-    if (inputDate.value !== '') {
-        inputDays.value = '';
-    }
+    if (inputDate.value !== '') inputDays.value = '';
 });
-
 
 roleSelector.addEventListener('change', (event) => {
     const selectedRole = event.target.value;
@@ -96,7 +84,6 @@ roleSelector.addEventListener('change', (event) => {
     }
 });
 
-
 chkGuestTake.addEventListener('change', (e) => {
     PERMISSIONS.guest.canTake = e.target.checked;
     updateUI();
@@ -110,6 +97,9 @@ chkChildTake.addEventListener('change', (e) => {
     updateUI();
 });
 
+// ==============================================================================
+// ОБРАБОТКА КЛИКОВ ПО КНОПКАМ ПРОДУКТОВ
+// ==============================================================================
 function handleProductAction(event) {
     const btn = event.target.closest('button');
     if (!btn) return;
@@ -123,6 +113,7 @@ function handleProductAction(event) {
 
     const perms = PERMISSIONS[currentRole];
 
+    // ДЕЙСТВИЕ 1: Взять (Consume)
     if (action === 'consume' && perms.canTake) {
         const amountStr = prompt(`Сколько "${batch.unit}" взять? (Доступно: ${batch.count})`, "1");
         if (amountStr !== null) {
@@ -141,10 +132,24 @@ function handleProductAction(event) {
             }
         }
     }
+    // ДЕЙСТВИЕ 2: Списать (Waste)
     else if (action === 'waste' && perms.canWaste) {
         if (confirm(`Вы уверены, что хотите выбросить "${batch.name}"?`)) {
             analytics.recordWaste(batch.count, batch.price);
             fridge.removeBatch(id);
+            updateUI();
+        }
+    }
+    // ДЕЙСТВИЕ 3 (НОВОЕ): Редактировать заметку (Edit Note)
+    else if (action === 'edit-note' && perms.canAdd) {
+        // Показываем текущую заметку в окне ввода
+        const currentNote = batch.note || "";
+        const newNote = prompt(`Введите новый комментарий для "${batch.name}":`, currentNote);
+
+        // Если пользователь не нажал "Отмена"
+        if (newNote !== null) {
+            // Передаем новый текст в Мозг и перерисовываем
+            fridge.updateBatchNote(id, newNote.trim());
             updateUI();
         }
     }
@@ -153,20 +158,21 @@ function handleProductAction(event) {
 document.getElementById('fridge-shelves').addEventListener('click', handleProductAction);
 document.getElementById('warning-list').addEventListener('click', handleProductAction);
 
-inputUnit.addEventListener('input', (event) => {
-    const val = event.target.value.toLowerCase().trim();
+inputUnit.addEventListener('change', (event) => {
+    const val = event.target.value;
     if (val === 'шт' || val === 'упак') {
         inputCount.step = '1';
         inputCount.placeholder = '1, 2...';
-    } else if (val === 'кг' || val === 'л') {
+    }
+    else if (val === 'гр' || val === 'мл') {
+        inputCount.step = '1';
+        inputCount.placeholder = '100, 250...';
+    }
+    else if (val === 'кг' || val === 'л') {
         inputCount.step = '0.1';
         inputCount.placeholder = '1.5, 0.2...';
-    } else {
-        inputCount.step = '0.1';
-        inputCount.placeholder = 'Кол-во';
     }
 });
-
 
 btnAdd.addEventListener('click', () => {
     if (!PERMISSIONS[currentRole].canAdd) return;
@@ -175,34 +181,38 @@ btnAdd.addEventListener('click', () => {
     const category = document.getElementById('p-category').value;
     const count = document.getElementById('p-count').value;
     const unit = document.getElementById('p-unit').value;
-
-    // Считываем оба поля
     const days = document.getElementById('p-days').value;
     const exactDate = document.getElementById('p-date').value;
+    const price = document.getElementById('p-price').value;
+    const note = document.getElementById('p-note').value;
 
     const isPerishable = document.getElementById('p-perishable').checked;
     const isFrozen = document.getElementById('p-frozen').checked;
 
-    // Передаем и days, и exactDate на фейс-контроль
     const validationResult = validateProductData(name, count, days, exactDate);
     if (!validationResult.valid) {
         alert(`❌ Ошибка: ${validationResult.error}`);
         return;
     }
 
-    // Отправляем в Мозг оба параметра сроков
-    fridge.addBatch(name, category, count, unit, days, exactDate, isPerishable, isFrozen, 0, "");
+    fridge.addBatch(name, category, count, unit, days, exactDate, isPerishable, isFrozen, price, note);
 
-    // Очищаем форму (включая календарь)
     document.getElementById('p-name').value = '';
     document.getElementById('p-count').value = '';
     document.getElementById('p-days').value = '';
     document.getElementById('p-date').value = '';
-    document.getElementById('p-unit').value = '';
+    document.getElementById('p-price').value = '';
+    document.getElementById('p-note').value = '';
+
+    document.getElementById('p-unit').value = 'шт';
+    inputCount.step = '1';
+    inputCount.placeholder = '1, 2...';
+
     document.getElementById('p-perishable').checked = false;
     document.getElementById('p-frozen').checked = false;
 
     updateUI();
 });
 
+// 9. ПЕРВЫЙ ЗАПУСК
 updateUI();
