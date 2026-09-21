@@ -2,12 +2,10 @@
 // ФАЙЛ: js/models/Fridge.js
 // НАЗНАЧЕНИЕ: Работа с данными холодильника через облачную базу данных Firebase Firestore.
 //
-// РЕАЛИЗОВАНО В ЭТОМ ФАЙЛЕ:
-// 1. Асинхронная загрузка всех продуктов из облака Firebase (getDocs).
-// 2. Добавление новой партии продуктов в облачную коллекцию 'batches' (addDoc).
-// 3. Удаление продукта из облака по его уникальному ID (deleteDoc).
-// 4. Обновление счетчиков и параметров продукта в базе (updateDoc).
-// 5. Умная сортировка продуктов по оставшимся дням свежести.
+// ЧТО ДОБАВЛЕНО В V 2.0 (Этап 2):
+// 1. Поле composition (Состав/Ингредиенты)
+// 2. Поле isCooked (Требует оценки семьи)
+// 3. Поля rating и ratingComment (Для хранения звезд и отзывов домочадцев)
 // ==============================================================================
 
 import { db } from '../firebase.js';
@@ -22,19 +20,16 @@ import {
 
 export class FridgeModel {
     constructor() {
-        // В облачной версии список продуктов изначально пуст.
-        // Данные будут подгружаться асинхронно из Firestore.
         this.batches = [];
     }
 
-    // Загрузка всех продуктов из облака Firebase
     async fetchBatchesFromCloud() {
         try {
             const querySnapshot = await getDocs(collection(db, "batches"));
             this.batches = [];
             querySnapshot.forEach((document) => {
                 this.batches.push({
-                    id: document.id, // Используем стандартный ID документа Firestore
+                    id: document.id,
                     ...document.data()
                 });
             });
@@ -45,8 +40,7 @@ export class FridgeModel {
         }
     }
 
-    // Добавление новой партии продуктов в облачную базу
-    async addBatch(name, category, count, unit, days, exactDate, isPerishable, isFrozen, price, note) {
+    async addBatch(name, category, count, unit, days, exactDate, isPerishable, isFrozen, isCooked, price, composition, note) {
         const msInDay = 24 * 60 * 60 * 1000;
         const expirationDate = exactDate ? new Date(exactDate).getTime() : Date.now() + (days * msInDay);
 
@@ -59,15 +53,16 @@ export class FridgeModel {
             expirationDate,
             isPerishable,
             isFrozen,
+            isCooked: isCooked || false,
             price: parseFloat(price) || 0,
-            note: note || ''
+            composition: composition || '',
+            note: note || '',
+            rating: null,
+            ratingComment: ''
         };
 
         try {
-            // Отправляем данные в коллекцию 'batches' в Firestore
             const docRef = await addDoc(collection(db, "batches"), newBatchData);
-
-            // Добавляем созданный объект в локальный массив с ID от Firebase
             this.batches.push({
                 id: docRef.id,
                 ...newBatchData
@@ -78,7 +73,6 @@ export class FridgeModel {
         }
     }
 
-    // Удаление продукта из облака по ID
     async removeBatch(id) {
         try {
             await deleteDoc(doc(db, "batches", id));
@@ -89,7 +83,6 @@ export class FridgeModel {
         }
     }
 
-    // Обновление количества продукта в облаке
     async updateBatchCount(id, newCount) {
         try {
             const batchRef = doc(db, "batches", id);
@@ -105,7 +98,6 @@ export class FridgeModel {
         }
     }
 
-    // Полное обновление данных продукта в облаке (например, при редактировании или частичном расходе)
     async updateFullBatch(id, updatedData) {
         try {
             const batchRef = doc(db, "batches", id);
@@ -121,12 +113,10 @@ export class FridgeModel {
         }
     }
 
-    // Поиск продукта в локальном массиве по ID
     getBatchById(id) {
         return this.batches.find(b => b.id === id);
     }
 
-    // Обработка и сортировка продуктов (расчет оставшихся дней)
     getProcessedBatches() {
         const msInDay = 24 * 60 * 60 * 1000;
         const now = Date.now();
@@ -136,7 +126,6 @@ export class FridgeModel {
             return { ...batch, daysLeft };
         });
 
-        // Сортировка: скоропортящиеся и с истекающим сроком — всегда наверху
         return processed.sort((a, b) => a.daysLeft - b.daysLeft);
     }
 }

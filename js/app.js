@@ -1,6 +1,11 @@
 // ==============================================================================
 // ФАЙЛ: js/app.js
-// НАЗНАЧЕНИЕ: Главный Контроллер (Controller).
+// НАЗНАЧЕНИЕ: Главный Контроллер (Controller). Управляет логикой и связью UI с Firebase.
+//
+// ЧТО ДОБАВЛЕНО В V 2.0 (Этап 2):
+// 1. Управление полем "Состав" (p-composition) и галочкой "Оценка семьи" (p-cooked)
+// 2. Логика модального окна рейтинга: выбор звезд, сохранение отзыва в облако.
+// 3. Автоматическая подстановка 3 дней для готовых блюд, если поле срока пустое.
 // ==============================================================================
 
 import { FridgeModel } from './models/Fridge.js';
@@ -94,7 +99,108 @@ chkGuestTake.addEventListener('change', (e) => { PERMISSIONS.guest.canTake = e.t
 chkGuestWaste.addEventListener('change', (e) => { PERMISSIONS.guest.canWaste = e.target.checked; updateUI(); });
 chkChildTake.addEventListener('change', (e) => { PERMISSIONS.child.canTake = e.target.checked; updateUI(); });
 
-function handleProductAction(event) {
+// ==============================================================================
+// ЛОГИКА РЕЙТИНГА (ЗВЕЗДОЧКИ)
+// ==============================================================================
+const ratingModal = document.getElementById('rating-modal');
+const btnCloseRating = document.getElementById('btn-close-rating');
+const ratingStars = document.querySelectorAll('#rating-stars span');
+const btnSubmitRating = document.getElementById('btn-submit-rating');
+const ratingComment = document.getElementById('rating-comment');
+const ratingMealName = document.getElementById('rating-meal-name');
+
+let currentRatingBatch = null;
+let selectedStars = 0;
+
+function closeRatingModal() {
+    ratingModal.classList.add('hidden');
+    currentRatingBatch = null;
+    selectedStars = 0;
+    ratingComment.value = '';
+    updateStarsUI();
+}
+
+btnCloseRating.addEventListener('click', closeRatingModal);
+
+function updateStarsUI() {
+    ratingStars.forEach(star => {
+        const val = parseInt(star.dataset.val);
+        if (val <= selectedStars) {
+            star.classList.replace('text-slate-200', 'text-orange-400');
+        } else {
+            star.classList.replace('text-orange-400', 'text-slate-200');
+        }
+    });
+}
+
+ratingStars.forEach(star => {
+    star.addEventListener('click', (e) => {
+        selectedStars = parseInt(e.target.dataset.val);
+        updateStarsUI();
+    });
+});
+
+btnSubmitRating.addEventListener('click', async () => {
+    if (selectedStars === 0) {
+        showToast('Пожалуйста, поставьте оценку от 1 до 5 звезд!', 'error');
+        return;
+    }
+    if (!currentRatingBatch) return;
+
+    btnSubmitRating.disabled = true;
+    btnSubmitRating.textContent = '⏳ Отправка...';
+
+    try {
+        await fridge.updateFullBatch(currentRatingBatch.id, {
+            rating: selectedStars,
+            ratingComment: ratingComment.value.trim()
+        });
+        showToast('⭐ Отзыв сохранен!', 'success');
+
+        const batch = currentRatingBatch;
+        closeRatingModal();
+
+        // После оценки запускаем стандартный процесс "Взять продукт"
+        promptAndConsume(batch);
+
+    } catch(error) {
+        showToast('❌ Ошибка связи с сервером', 'error');
+    } finally {
+        btnSubmitRating.disabled = false;
+        btnSubmitRating.textContent = 'Отправить отзыв';
+    }
+});
+
+// Вынесли логику потребления в отдельную функцию, чтобы вызывать ее и напрямую, и после оценки
+async function promptAndConsume(batch) {
+    const amountStr = prompt(`Сколько "${batch.unit}" взять? (Доступно: ${batch.count})`, "1");
+    if (amountStr !== null) {
+        const amount = parseFloat(amountStr);
+        if (!isNaN(amount) && amount > 0) {
+            try {
+                if (amount >= batch.count) {
+                    await analytics.recordConsumption(batch.count);
+                    await fridge.removeBatch(batch.id);
+                } else {
+                    await analytics.recordConsumption(amount);
+                    const newCount = batch.count - amount;
+                    const newPrice = batch.price * (newCount / batch.count);
+                    await fridge.updateFullBatch(batch.id, { count: newCount, price: newPrice });
+                }
+                updateUI();
+            } catch (error) {
+                showToast('❌ Ошибка связи с сервером', 'error');
+            }
+        } else { showToast('Введите корректное число больше нуля.', 'error'); }
+    } else {
+        updateUI(); // Обновляем UI, если нажали "Отмена", чтобы отобразились сохраненные звезды
+    }
+}
+
+// ==============================================================================
+// ОБРАБОТЧИК КНОПОК НА КАРТОЧКАХ
+// ==============================================================================
+async function handleProductAction(event) {
     const btn = event.target.closest('button');
     if (!btn) return;
     const id = btn.dataset.id;
@@ -104,60 +210,53 @@ function handleProductAction(event) {
     if (!batch) return;
     const perms = PERMISSIONS[currentRole];
 
-    if (action === 'consume' && perms.canTake) {
-        const amountStr = prompt(`Сколько "${batch.unit}" взять? (Доступно: ${batch.count})`, "1");
-        if (amountStr !== null) {
-            const amount = parseFloat(amountStr);
-            if (!isNaN(amount) && amount > 0) {
-                if (amount >= batch.count) {
-                    analytics.recordConsumption(batch.count);
-                    fridge.removeBatch(id);
-                } else {
-                    // ИСПРАВЛЕНИЕ 3: Пересчет цены при частичном потреблении
-                    analytics.recordConsumption(amount);
-
-                    const newCount = batch.count - amount;
-                    // Считаем долю оставшегося продукта и умножаем на старую цену
-                    const newPrice = batch.price * (newCount / batch.count);
-
-                    // Обновляем в модели и количество, и пропорционально уменьшенную цену
-                    fridge.updateFullBatch(id, { count: newCount, price: newPrice });
-                }
+    try {
+        if (action === 'rate-and-consume' && perms.canTake) {
+            currentRatingBatch = batch;
+            ratingMealName.textContent = batch.name;
+            ratingModal.classList.remove('hidden');
+        }
+        else if (action === 'consume' && perms.canTake) {
+            await promptAndConsume(batch);
+        }
+        else if (action === 'waste' && perms.canWaste) {
+            if (confirm(`Вы уверены, что хотите выбросить "${batch.name}"?`)) {
+                await analytics.recordWaste(batch.count, batch.price);
+                await fridge.removeBatch(id);
                 updateUI();
-            } else { showToast('Введите корректное число больше нуля.', 'error'); }
+            }
         }
-    }
-    else if (action === 'waste' && perms.canWaste) {
-        if (confirm(`Вы уверены, что хотите выбросить "${batch.name}"?`)) {
-            analytics.recordWaste(batch.count, batch.price);
-            fridge.removeBatch(id);
-            updateUI();
+        else if (action === 'edit' && perms.canAdd) {
+            document.getElementById('p-name').value = batch.name;
+            document.getElementById('p-category').value = batch.category;
+            document.getElementById('p-count').value = batch.count;
+            document.getElementById('p-unit').value = batch.unit;
+
+            const expDate = new Date(batch.expirationDate);
+            const yyyy = expDate.getFullYear();
+            const mm = String(expDate.getMonth() + 1).padStart(2, '0');
+            const dd = String(expDate.getDate()).padStart(2, '0');
+
+            document.getElementById('p-date').value = `${yyyy}-${mm}-${dd}`;
+            document.getElementById('p-days').value = '';
+
+            document.getElementById('p-price').value = batch.price || '';
+            document.getElementById('p-composition').value = batch.composition || '';
+            document.getElementById('p-note').value = batch.note || '';
+
+            document.getElementById('p-perishable').checked = batch.isPerishable;
+            document.getElementById('p-frozen').checked = batch.isFrozen;
+            document.getElementById('p-cooked').checked = batch.isCooked || false;
+
+            editingBatchId = id;
+            btnAdd.textContent = '💾 Сохранить изменения';
+            btnAdd.classList.replace('bg-green-500', 'bg-blue-600');
+            btnAdd.classList.replace('hover:bg-green-600', 'hover:bg-blue-700');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-    }
-    else if (action === 'edit' && perms.canAdd) {
-        document.getElementById('p-name').value = batch.name;
-        document.getElementById('p-category').value = batch.category;
-        document.getElementById('p-count').value = batch.count;
-        document.getElementById('p-unit').value = batch.unit;
-
-        const expDate = new Date(batch.expirationDate);
-        const yyyy = expDate.getFullYear();
-        const mm = String(expDate.getMonth() + 1).padStart(2, '0');
-        const dd = String(expDate.getDate()).padStart(2, '0');
-
-        document.getElementById('p-date').value = `${yyyy}-${mm}-${dd}`;
-        document.getElementById('p-days').value = '';
-
-        document.getElementById('p-price').value = batch.price || '';
-        document.getElementById('p-note').value = batch.note || '';
-        document.getElementById('p-perishable').checked = batch.isPerishable;
-        document.getElementById('p-frozen').checked = batch.isFrozen;
-
-        editingBatchId = id;
-        btnAdd.textContent = '💾 Сохранить изменения';
-        btnAdd.classList.replace('bg-green-500', 'bg-blue-600');
-        btnAdd.classList.replace('hover:bg-green-600', 'hover:bg-blue-700');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error) {
+        showToast('❌ Ошибка связи с сервером', 'error');
+        console.error("Сбой сети:", error);
     }
 }
 
@@ -165,7 +264,7 @@ document.getElementById('fridge-shelves').addEventListener('click', handleProduc
 
 inputUnit.addEventListener('change', (event) => {
     const val = event.target.value;
-    if (val === 'шт' || val === 'упак') {
+    if (val === 'шт' || val === 'упак' || val === 'порц' || val === 'банка') {
         inputCount.step = '1'; inputCount.placeholder = '1, 2...';
     } else if (val === 'гр' || val === 'мл') {
         inputCount.step = '1'; inputCount.placeholder = '100, 250...';
@@ -174,52 +273,76 @@ inputUnit.addEventListener('change', (event) => {
     }
 });
 
-btnAdd.addEventListener('click', () => {
+// ==============================================================================
+// ДОБАВЛЕНИЕ И РЕДАКТИРОВАНИЕ
+// ==============================================================================
+btnAdd.addEventListener('click', async () => {
     if (!PERMISSIONS[currentRole].canAdd) return;
 
     const name = document.getElementById('p-name').value;
     const category = document.getElementById('p-category').value;
     const count = document.getElementById('p-count').value;
     const unit = document.getElementById('p-unit').value;
-    const days = document.getElementById('p-days').value;
     const exactDate = document.getElementById('p-date').value;
     const price = document.getElementById('p-price').value;
+    const composition = document.getElementById('p-composition').value;
     const note = document.getElementById('p-note').value;
+
     const isPerishable = document.getElementById('p-perishable').checked;
     const isFrozen = document.getElementById('p-frozen').checked;
+    const isCooked = document.getElementById('p-cooked').checked;
 
-    const validationResult = validateProductData(name, count, days, exactDate);
-    if (!validationResult.valid) { showToast(validationResult.error, 'error'); return; }
-
-    if (editingBatchId) {
-        const msInDay = 24 * 60 * 60 * 1000;
-        const expirationDate = exactDate ? new Date(exactDate).getTime() : Date.now() + (days * msInDay);
-        fridge.updateFullBatch(editingBatchId, {
-            name, category, count: parseFloat(count), unit,
-            expirationDate, isPerishable, isFrozen, price: parseFloat(price) || 0, note
-        });
-        editingBatchId = null;
-        btnAdd.textContent = 'В холодильник';
-        btnAdd.classList.replace('bg-blue-600', 'bg-green-500');
-        btnAdd.classList.replace('hover:bg-blue-700', 'hover:bg-green-600');
-        showToast('Изменения сохранены', 'success');
-    } else {
-        fridge.addBatch(name, category, count, unit, days, exactDate, isPerishable, isFrozen, price, note);
-        showToast('Продукт добавлен', 'success');
+    // Умная подстановка 3 дней для готовых блюд, если дни и дата не указаны
+    let finalDays = document.getElementById('p-days').value;
+    if (isCooked && !finalDays && !exactDate) {
+        finalDays = '3';
     }
 
-    document.getElementById('p-name').value = '';
-    document.getElementById('p-count').value = '';
-    document.getElementById('p-days').value = '';
-    document.getElementById('p-date').value = '';
-    document.getElementById('p-price').value = '';
-    document.getElementById('p-note').value = '';
-    document.getElementById('p-unit').value = 'шт';
-    inputCount.step = '1'; inputCount.placeholder = '1, 2...';
-    document.getElementById('p-perishable').checked = false;
-    document.getElementById('p-frozen').checked = false;
+    const validationResult = validateProductData(name, count, finalDays, exactDate);
+    if (!validationResult.valid) { showToast(validationResult.error, 'error'); return; }
 
-    updateUI();
+    btnAdd.disabled = true;
+    btnAdd.textContent = '⏳ Сохранение...';
+
+    try {
+        if (editingBatchId) {
+            const msInDay = 24 * 60 * 60 * 1000;
+            const expirationDate = exactDate ? new Date(exactDate).getTime() : Date.now() + (finalDays * msInDay);
+            await fridge.updateFullBatch(editingBatchId, {
+                name, category, count: parseFloat(count), unit,
+                expirationDate, isPerishable, isFrozen, isCooked,
+                price: parseFloat(price) || 0, composition, note
+            });
+            editingBatchId = null;
+            btnAdd.classList.replace('bg-blue-600', 'bg-green-500');
+            btnAdd.classList.replace('hover:bg-blue-700', 'hover:bg-green-600');
+            showToast('Изменения сохранены в облако', 'success');
+        } else {
+            await fridge.addBatch(name, category, count, unit, finalDays, exactDate, isPerishable, isFrozen, isCooked, price, composition, note);
+            showToast('Продукт успешно добавлен', 'success');
+        }
+
+        document.getElementById('p-name').value = '';
+        document.getElementById('p-count').value = '';
+        document.getElementById('p-days').value = '';
+        document.getElementById('p-date').value = '';
+        document.getElementById('p-price').value = '';
+        document.getElementById('p-composition').value = '';
+        document.getElementById('p-note').value = '';
+        document.getElementById('p-unit').value = 'шт';
+        inputCount.step = '1'; inputCount.placeholder = '1, 2...';
+        document.getElementById('p-perishable').checked = false;
+        document.getElementById('p-frozen').checked = false;
+        document.getElementById('p-cooked').checked = false;
+
+        updateUI();
+    } catch (error) {
+        showToast('❌ Ошибка сохранения', 'error');
+        console.error(error);
+    } finally {
+        btnAdd.disabled = false;
+        btnAdd.textContent = 'На полку';
+    }
 });
 
 const v2Stubs = document.querySelectorAll('.v2-stub');
@@ -275,13 +398,9 @@ const btnInstruction = document.getElementById('btn-instruction');
 const btnCloseInstruction = document.getElementById('btn-close-instruction');
 const btnUnderstand = document.getElementById('btn-understand');
 
-function openInstruction() {
-    modalInstruction.classList.remove('hidden');
-}
-
+function openInstruction() { modalInstruction.classList.remove('hidden'); }
 function closeInstruction() {
     modalInstruction.classList.add('hidden');
-    // Запоминаем, что пользователь уже видел инструкцию
     localStorage.setItem('fridge_instruction_seen', 'true');
 }
 
@@ -289,9 +408,23 @@ btnInstruction.addEventListener('click', openInstruction);
 btnCloseInstruction.addEventListener('click', closeInstruction);
 btnUnderstand.addEventListener('click', closeInstruction);
 
-// Показываем автоматически только при самом первом заходе
 if (!localStorage.getItem('fridge_instruction_seen')) {
     openInstruction();
 }
 
-updateUI();
+// 1. Асинхронная инициализация приложения (Первый запуск)
+async function initApp() {
+    try {
+        showToast('⏳ Синхронизация с облаком...', 'info');
+        await fridge.fetchBatchesFromCloud();
+        await analytics.loadFromCloud();
+        updateUI();
+        showToast('✅ Успешно подключено!', 'success');
+    } catch (error) {
+        showToast('❌ Ошибка загрузки базы данных. Проверьте интернет.', 'error');
+        console.error("Сбой запуска:", error);
+        updateUI();
+    }
+}
+
+initApp();

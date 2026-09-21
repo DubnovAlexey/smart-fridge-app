@@ -1,44 +1,66 @@
 // ==============================================================================
 // ФАЙЛ: js/models/Analytics.js
 // НАЗНАЧЕНИЕ: Бизнес-логика (Мозг) для статистики. Считает съеденное и выброшенное.
+//
+// ЧТО РЕАЛИЗОВАНО В ЭТОМ ФАЙЛЕ (V 2.0 Облако):
+// 1. Интеграция с Firestore: Статистика хранится в документе 'general' коллекции 'stats'.
+// 2. Асинхронная инициализация: При старте пытается загрузить статистику из облака.
+// 3. Автосоздание: Если документа в облаке еще нет, он создается (setDoc).
+// 4. Обновление (updateDoc): При каждом списании/потреблении отправляет новые цифры на сервер.
 // ==============================================================================
 
-// Ключ для сейфа браузера (LocalStorage), куда мы будем сохранять цифры статистики
-const STATS_KEY = 'smart_fridge_stats';
+import { db } from '../firebase.js';
+import { doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-// Создаем Класс (Чертеж) для Аналитики
 export class AnalyticsModel {
-
-    // constructor срабатывает при запуске программы
     constructor() {
-        // Достаем текст из LocalStorage
-        const data = localStorage.getItem(STATS_KEY);
-
-        // Условие (Тернарный оператор):
-        // ЕСЛИ data есть (?), то превращаем текст в объект через JSON.parse
-        // ИНАЧЕ (:) создаем новый объект с нулями.
-        this.stats = data ? JSON.parse(data) : { consumed: 0, wasted: 0, moneyLost: 0 };
+        // Начальное состояние (нули).
+        // Оно будет перезаписано данными из облака при вызове loadFromCloud()
+        this.stats = { consumed: 0, wasted: 0, moneyLost: 0 };
     }
 
-    // Внутренняя функция для сохранения обновленных цифр в браузер
-    save() {
-        localStorage.setItem(STATS_KEY, JSON.stringify(this.stats));
+    // 1. Асинхронная загрузка статистики из облака Firebase
+    async loadFromCloud() {
+        try {
+            // Создаем ссылку на документ 'general' внутри коллекции 'stats'
+            const statRef = doc(db, "stats", "general");
+            const statSnap = await getDoc(statRef);
+
+            if (statSnap.exists()) {
+                // Если документ есть, берем данные из него
+                this.stats = statSnap.data();
+            } else {
+                // Если документа еще нет (первый запуск приложения),
+                // создаем его в облаке с нулями
+                await setDoc(statRef, this.stats);
+            }
+        } catch (error) {
+            console.error("Ошибка при загрузке аналитики из Firebase:", error);
+            // Если нет сети, программа продолжит работать с нулями
+        }
     }
 
-    // МЕТОД 1: Записать съеденное
-    recordConsumption(amount) {
-        // Берем текущее значение и прибавляем к нему новое (+=)
-        // parseFloat гарантирует, что мы прибавляем математическое число, а не текст
+    // 2. Асинхронное сохранение обновленных цифр в Firebase
+    async saveToCloud() {
+        try {
+            const statRef = doc(db, "stats", "general");
+            await updateDoc(statRef, this.stats);
+        } catch (error) {
+            console.error("Ошибка при сохранении аналитики в Firebase:", error);
+        }
+    }
+
+    // МЕТОД 1: Записать съеденное (теперь асинхронный)
+    async recordConsumption(amount) {
         this.stats.consumed += parseFloat(amount);
-        this.save(); // Сразу сохраняем
+        await this.saveToCloud(); // Отправляем в облако
     }
 
-    // МЕТОД 2: Записать выброшенное
-    recordWaste(amount, price) {
+    // МЕТОД 2: Записать выброшенное (теперь асинхронный)
+    async recordWaste(amount, price) {
         this.stats.wasted += parseFloat(amount);
-        // Считаем потери: если цену не указали, прибавляем 0
         this.stats.moneyLost += parseFloat(price) || 0;
-        this.save();
+        await this.saveToCloud(); // Отправляем в облако
     }
 
     // МЕТОД 3: Отдать статистику Контроллеру для отрисовки

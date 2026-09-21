@@ -1,3 +1,11 @@
+<!-- ==============================================================================
+ФАЙЛ: index.html
+НАЗНАЧЕНИЕ: Главная визуальная структура (Каркас) приложения
+ЧТО РЕАЛИЗОВАНО (V 2.0 Облако + Этап 2):
+1. Расширенные категории: Учтены настойки, заготовки, грибы, свой урожай.
+2. Новое поле "Состав": Для записи рецептуры домашних заготовок.
+3. Модальное окно "rating-modal" для оценки крафта и блюд звездами (1-5).
+============================================================================== -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -18,7 +26,6 @@
                 ❄️ Умный холодильник
             </h1>
             <div class="flex flex-wrap gap-2 mt-3">
-                <!-- НОВАЯ КНОПКА ИНСТРУКЦИИ -->
                 <button id="btn-instruction" class="text-xs bg-blue-100 text-blue-700 font-bold px-3 py-1.5 rounded-full shadow hover:shadow-md transition cursor-pointer flex items-center gap-1">
                     ℹ️ Как пользоваться
                 </button>
@@ -90,9 +97,10 @@
             <div class="flex items-center gap-4 mb-2">
                 <h2 class="text-lg font-bold text-slate-700">📊 Общая статистика</h2>
                 <button class="v2-stub text-xs text-indigo-500 font-semibold underline decoration-dashed hover:text-indigo-700 transition">Кто сколько съел? (V 2.0)</button>
+                <button class="v2-stub text-xs text-orange-500 font-semibold underline decoration-dashed hover:text-orange-700 transition">⭐ Семейный рейтинг (V 2.0)</button>
             </div>
             <div class="flex gap-6 text-sm">
-                <div class="text-green-600 font-semibold">✅ Съедено: <span id="stat-consumed">0</span></div>
+                <div class="text-green-600 font-semibold">✅ Съедено / Выпито: <span id="stat-consumed">0</span></div>
                 <div class="text-red-500 font-semibold">🗑 Списано: <span id="stat-wasted">0</span></div>
                 <div class="text-slate-500 font-semibold">💸 Потери: <span id="stat-money">0</span> ₽</div>
             </div>
@@ -129,7 +137,7 @@
     <!-- 6. ФОРМА ДОБАВЛЕНИЯ -->
     <section id="add-form-panel" class="bg-white rounded-2xl p-6 shadow-sm">
         <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-bold text-slate-800">➕ Добавить продукты</h2>
+            <h2 class="text-xl font-bold text-slate-800">➕ Добавить продукт или крафт</h2>
             <div class="flex gap-4">
                 <button class="v2-stub text-slate-500 hover:text-indigo-600 transition font-semibold text-sm border-b border-dashed border-slate-300 pb-0.5">🧾 Скан чека (V 2.0)</button>
                 <button class="v2-stub text-slate-500 hover:text-indigo-600 transition font-semibold text-sm border-b border-dashed border-slate-300 pb-0.5">🌐 База ГОСТов (V 2.0)</button>
@@ -140,16 +148,19 @@
         <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
             <div>
                 <label for="p-name" class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Название</label>
-                <input type="text" id="p-name" placeholder="Напр. Кефир" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="p-name" placeholder="Напр. Настойка клюквенная" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <div>
                 <label for="p-category" class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Категория</label>
                 <select id="p-category" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none cursor-pointer focus:ring-2 focus:ring-blue-500">
                     <option value="dairy">🥛 Молочка и Яйца</option>
                     <option value="meat">🥩 Мясо и Рыба</option>
-                    <option value="veg">🍎 Овощи и Фрукты</option>
-                    <option value="prepared">🍲 Готовая еда</option>
-                    <option value="pantry">🥫 Бакалея</option>
+                    <option value="veg">🍎 Овощи, Фрукты, Грибы</option>
+                    <option value="prepared">🍲 Готовая еда (супы, гарниры)</option>
+                    <option value="preserves">🥫 Домашние заготовки (варенье, соленья)</option>
+                    <option value="alcohol">🍷 Домашний алкоголь / Напитки</option>
+                    <option value="pantry">🌾 Бакалея и Специи</option>
+                    <option value="harvest">🧺 Свой урожай (орехи, травы, ягоды)</option>
                     <option value="other">📦 Прочее</option>
                 </select>
             </div>
@@ -158,11 +169,13 @@
                     <label for="p-unit" class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Ед. изм.</label>
                     <select id="p-unit" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none cursor-pointer focus:ring-2 focus:ring-blue-500">
                         <option value="шт">шт</option>
+                        <option value="порц">порц</option>
                         <option value="кг">кг</option>
                         <option value="гр">гр</option>
                         <option value="л">л</option>
                         <option value="мл">мл</option>
                         <option value="упак">упак</option>
+                        <option value="банка">банка</option>
                     </select>
                 </div>
                 <div class="w-1/2">
@@ -173,7 +186,7 @@
             <div class="flex gap-2">
                 <div class="w-1/2">
                     <label for="p-days" class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Дней</label>
-                    <input type="number" id="p-days" placeholder="Напр. 5" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="number" id="p-days" placeholder="Напр. 365" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div class="w-1/2">
                     <label for="p-date" class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Годен до</label>
@@ -182,25 +195,31 @@
             </div>
             <div>
                 <button id="btn-add" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2.5 px-4 rounded-lg transition shadow-sm">
-                    В холодильник
+                    На полку
                 </button>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 border-t border-slate-100 pt-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 border-t border-slate-100 pt-4">
             <div>
-                <label for="p-price" class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Цена за всю партию (₽)</label>
+                <label for="p-price" class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Цена / Себестоимость (₽)</label>
                 <input type="number" id="p-price" placeholder="Напр. 450" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500">
             </div>
             <div>
-                <label for="p-note" class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Комментарий / Заметка</label>
-                <input type="text" id="p-note" placeholder="Напр. Купил на рынке для борща" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500">
+                <!-- НОВОЕ ПОЛЕ: СОСТАВ / ИНГРЕДИЕНТЫ -->
+                <label for="p-composition" class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Состав / Ингредиенты</label>
+                <input type="text" id="p-composition" placeholder="Напр. Клюква, спирт, мед, мята" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label for="p-note" class="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">Откуда / Заметка</label>
+                <input type="text" id="p-note" placeholder="Напр. Собрали в лесу / Рецепт тети" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500">
             </div>
         </div>
 
-        <div class="mt-4 flex gap-6 text-sm font-medium text-slate-600">
-            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="p-perishable" class="w-4 h-4 text-blue-600 rounded">⚠️ Скоропортящееся</label>
+        <div class="mt-4 flex flex-wrap gap-6 text-sm font-medium text-slate-600">
+            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="p-perishable" class="w-4 h-4 text-blue-600 rounded">⚠️ Скоропорт</label>
             <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="p-frozen" class="w-4 h-4 text-blue-600 rounded">❄️ В морозилку</label>
+            <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="p-cooked" class="w-4 h-4 text-orange-500 rounded">⭐ Требует оценки семьи (Блюдо, крафт, урожай)</label>
         </div>
     </section>
 
@@ -224,6 +243,28 @@
             <li class="flex gap-3 items-start"><span class="text-xl">4️⃣</span> <div><strong class="text-slate-900 block mb-1">Готовьте с ИИ:</strong>Не знаете, что приготовить? Нажмите кнопку AI-Шефа, и нейросеть придумает рецепт из того, что вот-вот испортится!</div></li>
         </ul>
         <button id="btn-understand" class="mt-8 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition shadow-md">Понятно, спасибо!</button>
+    </div>
+</div>
+
+<!-- НОВОЕ: ВСПЛЫВАЮЩЕЕ ОКНО ОЦЕНКИ БЛЮДА/КРАФТА (СЕМЕЙНЫЙ РЕЙТИНГ) -->
+<div id="rating-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex justify-center items-center p-4 transition-opacity">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 relative text-center">
+        <button id="btn-close-rating" class="absolute top-4 right-5 text-slate-400 hover:text-slate-600 transition text-2xl font-bold">&times;</button>
+        <h2 class="text-2xl font-black text-slate-800 mb-1">Оцените качество</h2>
+        <p id="rating-meal-name" class="text-slate-500 text-sm mb-6 font-medium">Название</p>
+
+        <!-- Интерактивные звезды -->
+        <div class="flex justify-center gap-2 mb-6 text-4xl cursor-pointer select-none" id="rating-stars">
+            <span data-val="1" class="text-slate-200 hover:text-orange-400 transition">★</span>
+            <span data-val="2" class="text-slate-200 hover:text-orange-400 transition">★</span>
+            <span data-val="3" class="text-slate-200 hover:text-orange-400 transition">★</span>
+            <span data-val="4" class="text-slate-200 hover:text-orange-400 transition">★</span>
+            <span data-val="5" class="text-slate-200 hover:text-orange-400 transition">★</span>
+        </div>
+
+        <textarea id="rating-comment" rows="2" placeholder="Пару слов (например: отличная крепость, чуть пересолено...)" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-orange-500 text-sm mb-4 resize-none"></textarea>
+
+        <button id="btn-submit-rating" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition shadow-md">Отправить отзыв</button>
     </div>
 </div>
 
