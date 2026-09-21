@@ -1,6 +1,6 @@
 // ==============================================================================
 // ФАЙЛ: js/utils/barcodeScanner.js
-// ЧТО ИСПРАВЛЕНО: Убран qrbox для 100x повышения чувствительности сканера.
+// НАЗНАЧЕНИЕ: Универсальный сканер (Автоматический выбор камеры ПК / Телефон)
 // ==============================================================================
 
 import { showToast } from './helpers.js';
@@ -52,6 +52,7 @@ export function initScanner(onSuccessCallback) {
         isProcessing = false;
         scannerModal.classList.remove('hidden');
 
+        // Сброс визуальных эффектов
         scannerContainer.classList.remove('scan-success-flash');
         header.classList.replace('bg-green-600', 'bg-indigo-600');
         targetBox.classList.replace('border-green-500', 'border-red-500');
@@ -65,50 +66,73 @@ export function initScanner(onSuccessCallback) {
 
         html5QrCode = new Html5Qrcode("reader");
 
-        // УБРАН QRBOX! Теперь анализируется ВСЯ площадь видео.
-        html5QrCode.start(
-            { facingMode: "environment" },
-            { fps: 10 },
-            async (decodedText) => {
-                if (isProcessing) return;
-                isProcessing = true;
+        // Оптимизированные настройки (только штрих-коды продуктов)
+        const config = {
+            fps: 10,
+            formatsToSupport: [
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8,
+                Html5QrcodeSupportedFormats.UPC_A,
+                Html5QrcodeSupportedFormats.UPC_E,
+                Html5QrcodeSupportedFormats.CODE_128
+            ]
+        };
 
-                targetBox.classList.replace('border-red-500', 'border-green-500');
-                targetBox.classList.add('bg-green-500/20');
-                laser.classList.remove('scan-laser-active');
-                laser.classList.add('hidden');
+        // Общая функция обработки успеха, чтобы не дублировать код
+        const onScanSuccess = async (decodedText) => {
+            if (isProcessing) return;
+            isProcessing = true;
 
-                scannerContainer.classList.add('scan-success-flash');
-                header.classList.replace('bg-indigo-600', 'bg-green-600');
+            // ЗЕЛЕНАЯ ВСПЫШКА
+            targetBox.classList.replace('border-red-500', 'border-green-500');
+            targetBox.classList.add('bg-green-500/20');
+            laser.classList.remove('scan-laser-active');
+            laser.classList.add('hidden');
 
-                if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+            scannerContainer.classList.add('scan-success-flash');
+            header.classList.replace('bg-indigo-600', 'bg-green-600');
 
-                statusText.innerHTML = `✅ ${t('scan_code')} <b>${decodedText}</b>!<br><span class="text-xs">⏳ ${t('scan_search')}</span>`;
-                statusText.classList.replace('text-slate-600', 'text-green-600');
-                statusText.classList.replace('bg-slate-50', 'bg-green-50');
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
 
-                const productData = await fetchProductByBarcode(decodedText);
+            statusText.innerHTML = `✅ ${t('scan_code')} <b>${decodedText}</b>!<br><span class="text-xs">⏳ ${t('scan_search')}</span>`;
+            statusText.classList.replace('text-slate-600', 'text-green-600');
+            statusText.classList.replace('bg-slate-50', 'bg-green-50');
 
-                setTimeout(async () => {
-                    await stopScanner();
-                    if (productData) {
-                        onSuccessCallback(productData);
-                    } else {
-                        showToast(t('scan_not_found') || 'Не найдено.', 'error');
-                        onSuccessCallback(null);
-                    }
-                }, 1200);
-            },
-            (errorMessage) => { }
-        ).catch((err) => {
-            stopScanner();
-            showToast('❌ Ошибка камеры.', 'error');
-        });
+            const productData = await fetchProductByBarcode(decodedText);
+
+            setTimeout(async () => {
+                await stopScanner();
+                if (productData) {
+                    onSuccessCallback(productData);
+                } else {
+                    showToast(t('scan_not_found') || 'Не найдено в базе.', 'error');
+                    // Возвращаем сам код, чтобы пользователь мог вписать название вручную
+                    onSuccessCallback({ name: `Код: ${decodedText}`, barcode: decodedText });
+                }
+            }, 1200);
+        };
+
+        const onScanFailure = (errorMessage) => {
+            // Библиотека постоянно ругается в фоне, пока ищет штрих-код. Это нормально.
+        };
+
+        // ШАГ 1: Пробуем запустить заднюю камеру (Для смартфонов)
+        html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure)
+            .catch((errEnvironment) => {
+
+                // ШАГ 2: Задней камеры нет, запускаем фронтальную (Для ноутбуков)
+                html5QrCode.start({ facingMode: "user" }, config, onScanSuccess, onScanFailure)
+                    .catch((errUser) => {
+                        stopScanner();
+                        console.error("Ошибка запуска камеры:", errUser);
+                        showToast('❌ Ошибка камеры. Убедитесь, что камера не занята другой программой.', 'error');
+                    });
+            });
     }
 
     async function stopScanner() {
         if (html5QrCode && html5QrCode.isScanning) {
-            try { await html5QrCode.stop(); } catch (e) { }
+            try { await html5QrCode.stop(); } catch (e) { console.error(e); }
         }
         scannerModal.classList.add('hidden');
     }

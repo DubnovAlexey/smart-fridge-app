@@ -1,61 +1,59 @@
 // ==============================================================================
 // ФАЙЛ: js/utils/aiChef.js
-// НАЗНАЧЕНИЕ: Интеграция с нейросетью Gemini (актуальная модель gemini-3.5-flash)
+// НАЗНАЧЕНИЕ: Связь с Google Gemini AI (Рецепты и анализ продуктов)
 // ==============================================================================
 
-export async function askGeminiRecipe(apiKey, fridgeBatches, mode = 'all') {
-    let targetProducts = [];
-    let promptContext = "";
+const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+
+// Базовая функция для меню
+export async function askGeminiRecipe(apiKey, batches, mode) {
+    if (!apiKey) throw new Error("API Key is missing");
+
+    let promptText = "";
+    const foodList = batches.map(b => `${b.name} (${b.count} ${b.unit})`).join(', ');
 
     if (mode === 'rescue') {
-        targetProducts = fridgeBatches.filter(b => b.daysLeft <= 3 || b.isPerishable);
-        if (targetProducts.length === 0) {
-            return "Отличные новости! У вас нет продуктов, которые срочно нужно спасать. Нажмите кнопку «Из всего, что есть».";
-        }
-        promptContext = "У меня скоро испортятся следующие продукты:";
+        promptText = `У меня есть продукты: ${foodList}. Придумай 3 простых рецепта, чтобы спасти то, что скоро испортится. Отвечай на языке продуктов или на русском. Форматируй ответ только HTML тегами (<b>, <ul>, <li>). Не используй markdown.`;
     } else {
-        targetProducts = fridgeBatches;
-        if (targetProducts.length === 0) {
-            return "Ваш холодильник пуст. Сначала добавьте продукты на полки!";
-        }
-        promptContext = "У меня в холодильнике есть следующие продукты:";
+        promptText = `В моем холодильнике: ${foodList}. Придумай 3 интересных рецепта. Форматируй ответ только HTML тегами (<b>, <ul>, <li>). Не используй markdown.`;
     }
 
-    const fullIngredients = targetProducts.map(b => `${b.name} (${b.count} ${b.unit})`).join(', ');
+    return await fetchGemini(apiKey, promptText);
+}
 
-    const promptText = `I want to cook food. ${promptContext} ${fullIngredients}. 
-    Please come up with 5-7 DIFFERENT simple and delicious recipes in Russian. 
-    ${mode === 'rescue' ? 'Focus on using these specific products to save them from spoiling.' : 'Use any good combinations.'}
-    Do not use everything in one dish. Choose logical combinations.
-    Format the response clearly with structured steps for each recipe, separated by horizontal lines (---).`;
+// НОВОЕ: Мгновенный анализ продукта из сканера
+export async function askGeminiProductInfo(apiKey, productName, language) {
+    if (!apiKey) return "";
 
+    const promptText = `Ты кулинарный ИИ-эксперт. Пользователь отсканировал продукт "${productName}". 
+    Ответь СТРОГО на языке с кодом "${language}" (например, ru = русский, he = иврит, en = английский).
+    Напиши 3 коротких факта об этом продукте в формате HTML списка (без markdown):
+    <ul class="space-y-1 mt-2">
+      <li><b>Правила хранения:</b> (коротко)</li>
+      <li><b>Срок годности:</b> (в среднем)</li>
+      <li><b>Идея блюда:</b> (одно простое применение)</li>
+    </ul>
+    Обязательно переведи жирные заголовки на запрашиваемый язык!`;
+
+    return await fetchGemini(apiKey, promptText);
+}
+
+async function fetchGemini(apiKey, promptText) {
     try {
-        // Используем актуальное имя модели из документации Google
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent`;
-
-        const response = await fetch(url, {
+        const response = await fetch(`${API_URL}?key=${apiKey}`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-goog-api-key': apiKey.trim()
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{ parts: [{ text: promptText }] }]
             })
         });
-
-        if (!response.ok) {
-            const errText = await response.text();
-            console.error("Детали ошибки Google:", errText);
-            throw new Error(`Ошибка API: ${response.status}`);
-        }
-
         const data = await response.json();
-        return data.candidates[0].content.parts[0].text;
-
+        if (data.candidates && data.candidates.length > 0) {
+            return data.candidates[0].content.parts[0].text;
+        }
+        return "<i>Ошибка ответа AI</i>";
     } catch (error) {
-        console.error("Сбой при обращении к ИИ:", error);
-
-        return `❌ **Ой, AI-Шеф временно недоступен!**\n\nСервер отклонил запрос к модели. Проверьте правильность скопированного ключа.\n\n*(Код ошибки: ${error.message})*`;
+        console.error("Gemini API Error:", error);
+        return "<i>Ошибка соединения с AI.</i>";
     }
 }

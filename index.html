@@ -1,41 +1,24 @@
-<!-- ==============================================================================
-ФАЙЛ: index.html
-ЧТО ИСПРАВЛЕНО: Подключена библиотека календаря Flatpickr с языковыми пакетами.
-============================================================================== -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Умный холодильник 2.0</title>
-
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Barcode Scanner -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-
-    <!-- FLATPICKR (УМНЫЙ КАЛЕНДАРЬ И ЯЗЫКОВЫЕ ПАКЕТЫ) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/ru.js"></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/he.js"></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/de.js"></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
-
     <link rel="stylesheet" href="css/style.css">
     <style>
         @keyframes scan { 0% { top: 5%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 95%; opacity: 0; } }
         @keyframes spin-slow { 100% { transform: rotate(360deg); } }
         .animate-spin-slow { animation: spin-slow 3s linear infinite; }
-
-        @keyframes scanLaser {
-            0%, 100% { top: 5%; opacity: 0; }
-            10%, 90% { opacity: 1; }
-            50% { top: 95%; }
-        }
-        .scan-laser-active {
-            animation: scanLaser 2.5s ease-in-out infinite;
-        }
+        @keyframes scanLaser { 0%, 100% { top: 5%; opacity: 0; } 10%, 90% { opacity: 1; } 50% { top: 95%; } }
+        .scan-laser-active { animation: scanLaser 2.5s ease-in-out infinite; }
         .scan-success-flash { box-shadow: inset 0 0 0 10px #22c55e !important; transition: all 0.3s ease; }
     </style>
 </head>
@@ -195,8 +178,7 @@
                     </div>
                     <span class="text-slate-400 text-sm" data-i18n="or">ИЛИ</span>
                     <div class="flex-1">
-                        <!-- Мы убрали type="date", чтобы библиотека Flatpickr могла взять контроль -->
-                        <input type="text" id="p-date" data-i18n-placeholder="date_ph" placeholder="ДД-ММ-ГГГГ" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-green-500 text-slate-600 cursor-pointer">
+                        <input type="text" id="p-date" placeholder="ДД-ММ-ГГГГ" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-green-500 text-slate-600 cursor-pointer">
                     </div>
                 </div>
                 <div><button id="btn-toggle-advanced" class="w-full text-slate-500 hover:text-indigo-600 font-semibold text-sm transition py-3" data-i18n="adv_settings">⚙️ Расширенные настройки ▾</button></div>
@@ -269,8 +251,13 @@
             <strong data-i18n="comp_label">Состав:</strong> <span id="preview-ingredients"></span>
         </div>
 
+        <!-- НОВОЕ: БЛОК ИНСАЙТОВ ОТ ИИ (Хранение, Сроки, Рецепты) -->
+        <div id="preview-ai-insights" class="hidden mb-6 p-4 bg-indigo-50 rounded-xl border border-indigo-100 text-sm text-indigo-900 shadow-inner">
+            <!-- Сюда прилетит ответ от ИИ -->
+        </div>
+
         <p class="text-xs text-red-500 mb-6 font-medium bg-red-50 p-3 rounded-xl border border-red-100 leading-snug" data-i18n="preview_fake_warn">
-            ⚠️ Внимание: Базы штрих-кодов могут ошибаться.
+            ⚠️ Базы штрих-кодов могут ошибаться.
         </p>
 
         <div class="flex flex-col gap-3">
@@ -281,17 +268,14 @@
     </div>
 </div>
 
+<!-- Остальные модалки (оценка и т.д.) -->
 <div id="rating-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex justify-center items-center p-4 transition-opacity">
     <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 relative text-center">
         <button id="btn-close-rating" class="absolute top-4 right-5 text-slate-400 hover:text-slate-600 transition text-3xl font-bold">&times;</button>
         <h2 class="text-2xl font-black text-slate-800 mb-2" data-i18n="cooked_label">⭐ Оцените качество</h2>
         <p id="rating-meal-name" class="text-indigo-600 text-lg mb-6 font-bold">Название</p>
         <div class="flex justify-center gap-2 mb-6 text-5xl cursor-pointer select-none drop-shadow-sm" id="rating-stars">
-            <span data-val="1" class="text-slate-200 hover:text-orange-400 transition">★</span>
-            <span data-val="2" class="text-slate-200 hover:text-orange-400 transition">★</span>
-            <span data-val="3" class="text-slate-200 hover:text-orange-400 transition">★</span>
-            <span data-val="4" class="text-slate-200 hover:text-orange-400 transition">★</span>
-            <span data-val="5" class="text-slate-200 hover:text-orange-400 transition">★</span>
+            <span data-val="1" class="text-slate-200 hover:text-orange-400 transition">★</span><span data-val="2" class="text-slate-200 hover:text-orange-400 transition">★</span><span data-val="3" class="text-slate-200 hover:text-orange-400 transition">★</span><span data-val="4" class="text-slate-200 hover:text-orange-400 transition">★</span><span data-val="5" class="text-slate-200 hover:text-orange-400 transition">★</span>
         </div>
         <textarea id="rating-comment" rows="3" placeholder="..." class="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-4 outline-none focus:border-orange-400 text-sm mb-6 resize-none font-medium"></textarea>
         <button id="btn-submit-rating" class="w-full bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white font-black text-lg py-3 rounded-xl transition shadow-lg transform hover:-translate-y-0.5">Отправить</button>
