@@ -1,7 +1,8 @@
 // ==============================================================================
 // ФАЙЛ: js/app.js
-// НАЗНАЧЕНИЕ: Главный Контроллер (Controller). Управляет логикой и связью UI с Firebase.
-// ЧТО ВОССТАНОВЛЕНО: Логика кнопок (+/-), локализация календаря и полный функционал ролей.
+// НАЗНАЧЕНИЕ: Главный Контроллер (Controller).
+// ЧТО ИСПРАВЛЕНО: Восстановлены потерянные переменные editingBatchId, btnExport,
+// inputCsv, чекбоксы прав и исправлены ошибки промиса для WebStorm.
 // ==============================================================================
 
 import { FridgeModel } from './models/Fridge.js';
@@ -26,8 +27,10 @@ const fridge = new FridgeModel();
 const analytics = new AnalyticsModel();
 
 let currentRole = 'user';
+let editingBatchId = null; // ВОССТАНОВЛЕНО: Переменная для режима редактирования
 window.appLang = 'ru';
 
+// DOM-ЭЛЕМЕНТЫ: ОСНОВНЫЕ
 const roleSelector = document.getElementById('role-selector');
 const addFormPanel = document.getElementById('add-form-panel');
 const btnAdd = document.getElementById('btn-add');
@@ -43,6 +46,14 @@ const loaderOverlay = document.getElementById('loader-overlay');
 const adminPanel = document.getElementById('admin-panel');
 const rightsPanel = document.getElementById('rights-panel');
 const apiKeyInput = document.getElementById('api-key-input');
+
+// DOM-ЭЛЕМЕНТЫ: ВОССТАНОВЛЕНЫ ПЕРЕМЕННЫЕ CSV И ПРАВ
+const btnExport = document.getElementById('btn-export-csv');
+const btnImport = document.getElementById('btn-import-csv');
+const inputCsv = document.getElementById('input-csv');
+const chkGuestTake = document.getElementById('perm-guest-take');
+const chkGuestWaste = document.getElementById('perm-guest-waste');
+const chkChildTake = document.getElementById('perm-child-take');
 
 roleSelector.value = currentRole;
 
@@ -64,7 +75,7 @@ function applyTranslations(lang) {
 
     setTimeout(() => {
         document.body.dir = dict.dir;
-        document.documentElement.lang = lang; // Влияет на системные календари (дата)
+        document.documentElement.lang = lang;
 
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.getAttribute('data-i18n');
@@ -126,12 +137,10 @@ roleSelector.addEventListener('change', (event) => {
     updateUI();
 });
 
-const chkGuestTake = document.getElementById('perm-guest-take');
-const chkGuestWaste = document.getElementById('perm-guest-waste');
-const chkChildTake = document.getElementById('perm-child-take');
-chkGuestTake.addEventListener('change', (e) => { PERMISSIONS.guest.canTake = e.target.checked; updateUI(); });
-chkGuestWaste.addEventListener('change', (e) => { PERMISSIONS.guest.canWaste = e.target.checked; updateUI(); });
-chkChildTake.addEventListener('change', (e) => { PERMISSIONS.child.canTake = e.target.checked; updateUI(); });
+// ВОССТАНОВЛЕННЫЕ ОБРАБОТЧИКИ ПРАВ
+if (chkGuestTake) chkGuestTake.addEventListener('change', (e) => { PERMISSIONS.guest.canTake = e.target.checked; updateUI(); });
+if (chkGuestWaste) chkGuestWaste.addEventListener('change', (e) => { PERMISSIONS.guest.canWaste = e.target.checked; updateUI(); });
+if (chkChildTake) chkChildTake.addEventListener('change', (e) => { PERMISSIONS.child.canTake = e.target.checked; updateUI(); });
 
 const btnToggleAdvanced = document.getElementById('btn-toggle-advanced');
 const advancedSettings = document.getElementById('advanced-settings');
@@ -179,7 +188,6 @@ const startBarcodeScanner = initScanner((productData) => {
 
 document.getElementById('btn-scan-barcode').addEventListener('click', startBarcodeScanner);
 
-// Действия в окне превью
 document.getElementById('btn-preview-add').addEventListener('click', () => {
     previewModal.classList.add('hidden');
     if (scannedProductTemp) {
@@ -216,12 +224,10 @@ async function handleProductAction(event) {
     const batch = fridge.getBatchById(id);
     if (!batch) return;
 
-    // БЫСТРОЕ ДОБАВЛЕНИЕ (+)
     if (action === 'increase' && PERMISSIONS[currentRole].canAdd) {
         await fridge.updateFullBatch(id, { count: batch.count + 1 });
         updateUI();
     }
-    // БЫСТРОЕ ВЗЯТИЕ (-)
     else if (action === 'decrease' && PERMISSIONS[currentRole].canTake) {
         if (batch.count > 1) {
             await analytics.recordConsumption(1);
@@ -235,7 +241,6 @@ async function handleProductAction(event) {
             }
         }
     }
-    // СТАНДАРТНОЕ ВЗЯТИЕ С ПРОМПТОМ
     else if (action === 'consume' && PERMISSIONS[currentRole].canTake) {
         const amountStr = prompt(`Сколько "${batch.unit}" взять? (Доступно: ${batch.count})`, "1");
         if (amountStr !== null) {
@@ -252,7 +257,6 @@ async function handleProductAction(event) {
             }
         }
     }
-    // РЕДАКТИРОВАНИЕ
     else if (action === 'edit' && PERMISSIONS[currentRole].canAdd) {
         advancedSettings.classList.remove('hidden');
         inputName.value = batch.name;
@@ -275,12 +279,11 @@ async function handleProductAction(event) {
         document.getElementById('p-frozen').checked = batch.isFrozen;
         document.getElementById('p-cooked').checked = batch.isCooked || false;
 
-        editingBatchId = id;
+        editingBatchId = id; // ПЕРЕМЕННАЯ ВОССТАНОВЛЕНА
         btnAdd.textContent = '💾 Сохранить изменения';
         btnAdd.classList.replace('bg-green-500', 'bg-blue-600');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    // СПИСАНИЕ
     else if (action === 'waste' && PERMISSIONS[currentRole].canWaste) {
         if (confirm(`Выбросить "${batch.name}"?`)) {
             await analytics.recordWaste(batch.count, batch.price);
@@ -291,8 +294,6 @@ async function handleProductAction(event) {
 }
 
 document.getElementById('fridge-shelves').addEventListener('click', handleProductAction);
-
-let editingBatchIdTemp = null; // Для сохранения режима редактирования
 
 btnAdd.addEventListener('click', async () => {
     if (!PERMISSIONS[currentRole].canAdd) return;
@@ -317,7 +318,7 @@ btnAdd.addEventListener('click', async () => {
     btnAdd.textContent = '⏳ ...';
 
     try {
-        if (editingBatchId) {
+        if (editingBatchId) { // ИСПОЛЬЗУЕТСЯ ВОССТАНОВЛЕННАЯ ПЕРЕМЕННАЯ
             const msInDay = 24 * 60 * 60 * 1000;
             const expirationDate = exactDate ? new Date(exactDate).getTime() : Date.now() + (finalDays * msInDay);
             await fridge.updateFullBatch(editingBatchId, {
@@ -349,9 +350,10 @@ btnAdd.addEventListener('click', async () => {
     }
 });
 
-btnExport.addEventListener('click', () => { exportToCSV(fridge.batches); });
-btnImport.addEventListener('click', () => { inputCsv.click(); });
-inputCsv.addEventListener('change', (e) => {
+// ВОССТАНОВЛЕННЫЕ ОБРАБОТЧИКИ CSV
+if (btnExport) btnExport.addEventListener('click', () => { exportToCSV(fridge.batches); });
+if (btnImport) btnImport.addEventListener('click', () => { inputCsv.click(); });
+if (inputCsv) inputCsv.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) { importFromCSV(file, fridge, updateUI); inputCsv.value = ''; }
 });
@@ -380,4 +382,5 @@ async function initApp() {
         updateUI();
     }
 }
-initApp();
+// ИСПРАВЛЕНО ДЛЯ WEBSTORM: добавляем обработчик ошибки для промиса
+initApp().catch(console.error);
