@@ -50,7 +50,9 @@ export function renderFridgeContents(batches, permissions) {
 }
 
 export function renderAnalytics(stats) {
-    document.getElementById('stat-consumed').textContent = stats.consumed;
-    document.getElementById('stat-wasted').textContent = stats.wasted;
-    document.getElementById('stat-money').textContent = stats.money;
+    // ИСПРАВЛЕНИЕ 2: Запрашиваем правильное свойство (stats.moneyLost)
+    // ИСПРАВЛЕНИЕ 3 (Частично): Используем textContent для безопасности от XSS
+    document.getElementById('stat-consumed').textContent = stats.consumed.toFixed(1);
+    document.getElementById('stat-wasted').textContent = stats.wasted.toFixed(1);
+    document.getElementById('stat-money').textContent = stats.moneyLost.toFixed(2);
 }

@@ -17,7 +17,9 @@ export class FridgeModel {
         const expirationDate = exactDate ? new Date(exactDate).getTime() : Date.now() + (days * msInDay);
 
         const newBatch = {
-            id: Date.now().toString(),
+            // ИСПРАВЛЕНИЕ 1: Используем crypto.randomUUID() вместо Date.now()
+            // для генерации абсолютно уникального ID (защита при импорте CSV)
+            id: crypto.randomUUID(),
             name, category, count: parseFloat(count), unit,
             addedAt: Date.now(),
             expirationDate, isPerishable, isFrozen,

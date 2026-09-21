@@ -113,8 +113,15 @@ function handleProductAction(event) {
                     analytics.recordConsumption(batch.count);
                     fridge.removeBatch(id);
                 } else {
+                    // ИСПРАВЛЕНИЕ 3: Пересчет цены при частичном потреблении
                     analytics.recordConsumption(amount);
-                    fridge.updateBatchCount(id, batch.count - amount);
+
+                    const newCount = batch.count - amount;
+                    // Считаем долю оставшегося продукта и умножаем на старую цену
+                    const newPrice = batch.price * (newCount / batch.count);
+
+                    // Обновляем в модели и количество, и пропорционально уменьшенную цену
+                    fridge.updateFullBatch(id, { count: newCount, price: newPrice });
                 }
                 updateUI();
             } else { showToast('Введите корректное число больше нуля.', 'error'); }
