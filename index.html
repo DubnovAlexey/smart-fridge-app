@@ -1,10 +1,8 @@
 <!-- ==============================================================================
 ФАЙЛ: index.html
 НАЗНАЧЕНИЕ: Главная визуальная структура (Каркас) приложения
-ЧТО РЕАЛИЗОВАНО (V 2.0 Облако + Этап 4 - Сканер):
-1. Подключена библиотека html5-qrcode.
-2. Добавлено полноэкранное модальное окно сканера для мобильных.
-3. Кнопка сканера сделана крупной и удобной для пальца.
+ЧТО РЕАЛИЗОВАНО (V 2.0 Облако + Этап 4.1 - i18n Подготовка):
+1. В шапку добавлен глобальный селектор языков (RU, EN, HE, DE, ES).
 ============================================================================== -->
 <!DOCTYPE html>
 <html lang="ru">
@@ -13,16 +11,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Умный холодильник 2.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- ПОДКЛЮЧАЕМ БИБЛИОТЕКУ КАМЕРЫ ДЛЯ СКАНИРОВАНИЯ ШТРИХ-КОДОВ -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans p-4 md:p-8 relative">
+<body class="bg-slate-50 text-slate-800 font-sans p-4 md:p-8 relative transition-all duration-300">
 
 <div class="max-w-6xl mx-auto space-y-6">
 
     <!-- 1. ШАПКА -->
-    <header class="bg-white rounded-2xl shadow-sm p-6 flex flex-col md:flex-row justify-between items-center gap-4 border-t-4 border-blue-500">
+    <header class="bg-white rounded-2xl shadow-sm p-6 flex flex-col lg:flex-row justify-between items-center gap-4 border-t-4 border-blue-500">
         <div>
             <h1 class="text-3xl font-black text-blue-600 flex items-center gap-2">
                 ❄️ Умный холодильник
@@ -37,18 +34,33 @@
             </div>
         </div>
 
-        <div class="flex flex-col sm:flex-row items-center gap-3 bg-slate-50 p-2 rounded-2xl border border-slate-200">
-            <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl shadow-sm border border-slate-100 w-full sm:w-auto">
-                <span class="text-lg">🧑‍🍳</span>
-                <input type="text" id="user-name-input" placeholder="Ваше имя (напр. Оля)" class="bg-transparent border-none outline-none font-bold text-slate-700 w-32 placeholder-slate-400 text-sm">
+        <div class="flex flex-col sm:flex-row items-center gap-3">
+            <!-- БЛОК ЛОКАЛИЗАЦИИ (ЯЗЫК) -->
+            <div class="flex items-center bg-slate-50 p-2 rounded-2xl border border-slate-200">
+                <span class="text-lg pl-2">🌍</span>
+                <select id="lang-selector" class="bg-transparent border-none text-sm font-bold text-slate-700 outline-none cursor-pointer px-2">
+                    <option value="ru" selected>Русский</option>
+                    <option value="he">עברית (Hebrew)</option>
+                    <option value="en">English</option>
+                    <option value="de">Deutsch</option>
+                    <option value="es">Español</option>
+                </select>
             </div>
 
-            <select id="role-selector" class="bg-white border border-slate-100 shadow-sm rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none cursor-pointer w-full sm:w-auto">
-                <option value="user">🛡️ Юзер (Всё)</option>
-                <option value="admin">🛠️ Админ</option>
-                <option value="guest">👁️ Гость</option>
-                <option value="child">🧒 Ребенок</option>
-            </select>
+            <!-- БЛОК ИДЕНТИФИКАЦИИ И АВТОРИЗАЦИИ -->
+            <div class="flex items-center gap-2 bg-slate-50 p-2 rounded-2xl border border-slate-200">
+                <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl shadow-sm border border-slate-100 w-full sm:w-auto">
+                    <span class="text-lg">🧑‍🍳</span>
+                    <input type="text" id="user-name-input" placeholder="Ваше имя (напр. Оля)" class="bg-transparent border-none outline-none font-bold text-slate-700 w-32 placeholder-slate-400 text-sm">
+                </div>
+
+                <select id="role-selector" class="bg-white border border-slate-100 shadow-sm rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none cursor-pointer w-full sm:w-auto">
+                    <option value="user">🛡️ Юзер</option>
+                    <option value="admin">🛠️ Админ</option>
+                    <option value="guest">👁️ Гость</option>
+                    <option value="child">🧒 Ребенок</option>
+                </select>
+            </div>
         </div>
     </header>
 
@@ -135,7 +147,6 @@
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">➕ Добавить на полку</h2>
 
-                <!-- НОВАЯ ЖИРНАЯ КНОПКА СКАНЕРА -->
                 <div class="flex gap-3">
                     <button id="btn-scan-barcode" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-black transition flex items-center gap-2 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
                         📷 Скан штрих-кода
@@ -266,7 +277,7 @@
     </div>
 </div>
 
-<!-- НОВОЕ: ПОЛНОЭКРАННОЕ МОДАЛЬНОЕ ОКНО СКАНЕРА -->
+<!-- ПОЛНОЭКРАННОЕ МОДАЛЬНОЕ ОКНО СКАНЕРА -->
 <div id="scanner-modal" class="hidden fixed inset-0 bg-slate-900/95 backdrop-blur-md z-[60] flex flex-col justify-center items-center p-4 transition-opacity">
     <div class="w-full max-w-md bg-white rounded-3xl overflow-hidden flex flex-col relative shadow-2xl">
         <div class="p-5 bg-indigo-600 text-white flex justify-between items-center">
@@ -274,7 +285,6 @@
             <button id="btn-close-scanner" class="text-white hover:text-indigo-200 text-4xl leading-none font-light">&times;</button>
         </div>
 
-        <!-- Сюда библиотека встроит окошко видеокамеры -->
         <div id="reader" class="w-full bg-black min-h-[300px]"></div>
 
         <div class="p-6 text-center text-sm text-slate-600 font-semibold bg-slate-50">
