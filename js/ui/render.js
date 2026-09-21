@@ -1,7 +1,7 @@
 // ==============================================================================
 // ФАЙЛ: js/ui/render.js
 // НАЗНАЧЕНИЕ: Генерация HTML для списка продуктов
-// ЧТО ИЗМЕНЕНО: Добавлен перевод категорий, единиц и доп. полей.
+// ЧТО ВОССТАНОВЛЕНО: Кнопки (+ / -) для быстрого изменения количества
 // ==============================================================================
 import { t } from '../utils/translations.js';
 
@@ -75,9 +75,17 @@ export function renderFridgeContents(batches, permissions) {
                 </div>
 
                 <div class="flex flex-col items-end justify-between min-h-full min-w-[140px] pl-4 md:border-l border-slate-200">
-                    <div class="text-right mb-4 w-full">
-                        <div class="text-4xl font-black text-slate-800 tracking-tighter text-center md:text-right">${batch.count}</div>
-                        <div class="text-sm text-slate-500 uppercase font-black tracking-widest text-center md:text-right">${t('unit_' + batch.unit)}</div>
+                    
+                    <!-- БЛОК КОЛИЧЕСТВА С ВОССТАНОВЛЕННЫМИ КНОПКАМИ +/- -->
+                    <div class="text-right mb-4 w-full flex flex-col items-end">
+                        <div class="flex items-center gap-3">
+                            ${permissions.canTake ? `<button data-id="${batch.id}" data-action="decrease" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-lg transition flex items-center justify-center cursor-pointer shadow-sm">-</button>` : ''}
+                            
+                            <div class="text-4xl font-black text-slate-800 tracking-tighter w-12 text-center">${batch.count}</div>
+                            
+                            ${permissions.canAdd ? `<button data-id="${batch.id}" data-action="increase" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-black text-lg transition flex items-center justify-center cursor-pointer shadow-sm">+</button>` : ''}
+                        </div>
+                        <div class="text-sm text-slate-500 uppercase font-black tracking-widest mt-1 text-center w-full">${t('unit_' + batch.unit)}</div>
                     </div>
                     
                     <div class="flex flex-col gap-2 w-full">

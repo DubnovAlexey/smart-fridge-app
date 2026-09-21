@@ -1,6 +1,6 @@
 // ==============================================================================
 // ФАЙЛ: js/utils/barcodeScanner.js
-// НАЗНАЧЕНИЕ: Сканнер с запросом полной информации о продукте (фото, состав)
+// НАЗНАЧЕНИЕ: Улучшенный сканер штрих-кодов с лазером и превью
 // ==============================================================================
 
 import { showToast } from './helpers.js';
@@ -26,7 +26,6 @@ async function fetchProductByBarcode(barcode) {
                 fullName = `${brand} ${name}`;
             }
 
-            // Возвращаем богатый объект данных
             return {
                 barcode: barcode,
                 name: fullName.trim(),
@@ -53,31 +52,39 @@ export function initScanner(onSuccessCallback) {
         isProcessing = false;
         scannerModal.classList.remove('hidden');
 
+        // Сброс интерфейса в режим поиска (Красный цвет)
         scannerContainer.classList.remove('scan-success-flash');
         header.classList.replace('bg-green-600', 'bg-indigo-600');
         targetBox.classList.replace('border-green-500', 'border-red-500');
         targetBox.classList.remove('bg-green-500/20');
-        laser.classList.remove('hidden');
 
-        statusText.innerHTML = t('scan_wait') || 'Поместите штрих-код в центр рамки...';
+        // Включаем бегающий лазер
+        laser.classList.remove('hidden');
+        laser.classList.add('scan-laser-active');
+
+        statusText.innerHTML = t('scan_wait') || 'Поместите штрих-код в рамку...';
         statusText.className = 'p-6 text-center text-sm font-semibold bg-slate-50 text-slate-600 transition-colors';
 
         html5QrCode = new Html5Qrcode("reader");
 
         html5QrCode.start(
             { facingMode: "environment" },
-            { fps: 10, qrbox: { width: 300, height: 200 } },
+            { fps: 10, qrbox: { width: 280, height: 200 } },
             async (decodedText) => {
                 if (isProcessing) return;
                 isProcessing = true;
 
+                // === ЗЕЛЕНАЯ ВСПЫШКА УСПЕХА ===
                 targetBox.classList.replace('border-red-500', 'border-green-500');
                 targetBox.classList.add('bg-green-500/20');
+                // Отключаем и прячем лазер
+                laser.classList.remove('scan-laser-active');
                 laser.classList.add('hidden');
+
                 scannerContainer.classList.add('scan-success-flash');
                 header.classList.replace('bg-indigo-600', 'bg-green-600');
 
-                if (navigator.vibrate) navigator.vibrate(200);
+                if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
 
                 statusText.innerHTML = `✅ ${t('scan_code')} <b>${decodedText}</b>!<br><span class="text-xs">⏳ ${t('scan_search')}</span>`;
                 statusText.classList.replace('text-slate-600', 'text-green-600');
@@ -85,6 +92,7 @@ export function initScanner(onSuccessCallback) {
 
                 const productData = await fetchProductByBarcode(decodedText);
 
+                // Задержка, чтобы пользователь успел увидеть зеленый экран
                 setTimeout(async () => {
                     await stopScanner();
                     if (productData) {
@@ -93,7 +101,7 @@ export function initScanner(onSuccessCallback) {
                         showToast(t('scan_not_found') || 'Не найдено.', 'error');
                         onSuccessCallback(null);
                     }
-                }, 1000);
+                }, 1200);
             },
             (errorMessage) => { }
         ).catch((err) => {

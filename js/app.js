@@ -1,6 +1,7 @@
 // ==============================================================================
 // ФАЙЛ: js/app.js
 // НАЗНАЧЕНИЕ: Главный Контроллер (Controller). Управляет логикой и связью UI с Firebase.
+// ЧТО ВОССТАНОВЛЕНО: Логика кнопок (+/-), локализация календаря и полный функционал ролей.
 // ==============================================================================
 
 import { FridgeModel } from './models/Fridge.js';
@@ -17,7 +18,8 @@ const PASSWORDS = { admin: 'admin2026', user: '1234' };
 const PERMISSIONS = {
     admin: { canAdd: true, canTake: true, canWaste: true },
     user:  { canAdd: true, canTake: true, canWaste: true },
-    guest: { canAdd: true, canTake: false, canWaste: false }
+    guest: { canAdd: true, canTake: false, canWaste: false },
+    child: { canAdd: false, canTake: false, canWaste: false }
 };
 
 const fridge = new FridgeModel();
@@ -40,16 +42,20 @@ const langSelector = document.getElementById('lang-selector');
 const loaderOverlay = document.getElementById('loader-overlay');
 const adminPanel = document.getElementById('admin-panel');
 const rightsPanel = document.getElementById('rights-panel');
+const apiKeyInput = document.getElementById('api-key-input');
 
 roleSelector.value = currentRole;
 
 const savedName = localStorage.getItem('smart_fridge_username');
 if (savedName) userNameInput.value = savedName;
+const savedKey = sessionStorage.getItem('gemini_api_key');
+if (savedKey) apiKeyInput.value = savedKey;
 
 userNameInput.addEventListener('input', (e) => {
     localStorage.setItem('smart_fridge_username', e.target.value.trim());
 });
 
+// ПЕРЕВОДЧИК И ЛОКАЛИЗАЦИЯ КАЛЕНДАРЯ
 function applyTranslations(lang) {
     const dict = TRANSLATIONS[lang];
     if (!dict) return;
@@ -58,7 +64,7 @@ function applyTranslations(lang) {
 
     setTimeout(() => {
         document.body.dir = dict.dir;
-        document.documentElement.lang = lang;
+        document.documentElement.lang = lang; // Влияет на системные календари (дата)
 
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.getAttribute('data-i18n');
@@ -110,7 +116,7 @@ inputDate.addEventListener('input', () => { if (inputDate.value !== '') inputDay
 roleSelector.addEventListener('change', (event) => {
     const selectedRole = event.target.value;
     if (selectedRole === 'admin') {
-        if (prompt('Пароль:') !== PASSWORDS.admin) {
+        if (prompt('Пароль (admin2026):') !== PASSWORDS.admin) {
             showToast('Доступ запрещен', 'error');
             roleSelector.value = currentRole;
             return;
@@ -119,6 +125,13 @@ roleSelector.addEventListener('change', (event) => {
     currentRole = selectedRole;
     updateUI();
 });
+
+const chkGuestTake = document.getElementById('perm-guest-take');
+const chkGuestWaste = document.getElementById('perm-guest-waste');
+const chkChildTake = document.getElementById('perm-child-take');
+chkGuestTake.addEventListener('change', (e) => { PERMISSIONS.guest.canTake = e.target.checked; updateUI(); });
+chkGuestWaste.addEventListener('change', (e) => { PERMISSIONS.guest.canWaste = e.target.checked; updateUI(); });
+chkChildTake.addEventListener('change', (e) => { PERMISSIONS.child.canTake = e.target.checked; updateUI(); });
 
 const btnToggleAdvanced = document.getElementById('btn-toggle-advanced');
 const advancedSettings = document.getElementById('advanced-settings');
@@ -166,18 +179,18 @@ const startBarcodeScanner = initScanner((productData) => {
 
 document.getElementById('btn-scan-barcode').addEventListener('click', startBarcodeScanner);
 
-// Кнопки внутри окна превью
+// Действия в окне превью
 document.getElementById('btn-preview-add').addEventListener('click', () => {
     previewModal.classList.add('hidden');
     if (scannedProductTemp) {
         inputName.value = scannedProductTemp.name;
         if (scannedProductTemp.ingredients) {
             document.getElementById('p-composition').value = scannedProductTemp.ingredients.substring(0, 100);
-            advancedSettings.classList.remove('hidden'); // Открываем настройки, чтобы показать состав
+            advancedSettings.classList.remove('hidden');
         }
         const days = guessExpirationDays(scannedProductTemp.name, inputCategory.value);
         if (days) inputDays.value = days;
-        inputCount.focus(); // Предлагаем сразу ввести количество
+        inputCount.focus();
     }
 });
 
@@ -193,7 +206,8 @@ document.getElementById('btn-preview-fake').addEventListener('click', () => {
 });
 
 // ==============================================================================
-
+// ОБРАБОТКА ВСЕХ КНОПОК НА КАРТОЧКЕ (+, -, Изменить, Взять, Списать)
+// ==============================================================================
 async function handleProductAction(event) {
     const btn = event.target.closest('button');
     if (!btn) return;
@@ -202,7 +216,27 @@ async function handleProductAction(event) {
     const batch = fridge.getBatchById(id);
     if (!batch) return;
 
-    if (action === 'consume' && PERMISSIONS[currentRole].canTake) {
+    // БЫСТРОЕ ДОБАВЛЕНИЕ (+)
+    if (action === 'increase' && PERMISSIONS[currentRole].canAdd) {
+        await fridge.updateFullBatch(id, { count: batch.count + 1 });
+        updateUI();
+    }
+    // БЫСТРОЕ ВЗЯТИЕ (-)
+    else if (action === 'decrease' && PERMISSIONS[currentRole].canTake) {
+        if (batch.count > 1) {
+            await analytics.recordConsumption(1);
+            await fridge.updateFullBatch(id, { count: batch.count - 1 });
+            updateUI();
+        } else {
+            if (confirm(`Выбросить или полностью съесть "${batch.name}"?`)) {
+                await analytics.recordConsumption(1);
+                await fridge.removeBatch(id);
+                updateUI();
+            }
+        }
+    }
+    // СТАНДАРТНОЕ ВЗЯТИЕ С ПРОМПТОМ
+    else if (action === 'consume' && PERMISSIONS[currentRole].canTake) {
         const amountStr = prompt(`Сколько "${batch.unit}" взять? (Доступно: ${batch.count})`, "1");
         if (amountStr !== null) {
             const amount = parseFloat(amountStr);
@@ -217,7 +251,37 @@ async function handleProductAction(event) {
                 updateUI();
             }
         }
-    } else if (action === 'waste' && PERMISSIONS[currentRole].canWaste) {
+    }
+    // РЕДАКТИРОВАНИЕ
+    else if (action === 'edit' && PERMISSIONS[currentRole].canAdd) {
+        advancedSettings.classList.remove('hidden');
+        inputName.value = batch.name;
+        inputCategory.value = batch.category;
+        inputCount.value = batch.count;
+        inputUnit.value = batch.unit;
+
+        const expDate = new Date(batch.expirationDate);
+        const yyyy = expDate.getFullYear();
+        const mm = String(expDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(expDate.getDate()).padStart(2, '0');
+
+        inputDate.value = `${yyyy}-${mm}-${dd}`;
+        inputDays.value = '';
+
+        document.getElementById('p-price').value = batch.price || '';
+        document.getElementById('p-composition').value = batch.composition || '';
+        document.getElementById('p-note').value = batch.note || '';
+        document.getElementById('p-perishable').checked = batch.isPerishable;
+        document.getElementById('p-frozen').checked = batch.isFrozen;
+        document.getElementById('p-cooked').checked = batch.isCooked || false;
+
+        editingBatchId = id;
+        btnAdd.textContent = '💾 Сохранить изменения';
+        btnAdd.classList.replace('bg-green-500', 'bg-blue-600');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    // СПИСАНИЕ
+    else if (action === 'waste' && PERMISSIONS[currentRole].canWaste) {
         if (confirm(`Выбросить "${batch.name}"?`)) {
             await analytics.recordWaste(batch.count, batch.price);
             await fridge.removeBatch(id);
@@ -225,7 +289,10 @@ async function handleProductAction(event) {
         }
     }
 }
+
 document.getElementById('fridge-shelves').addEventListener('click', handleProductAction);
+
+let editingBatchIdTemp = null; // Для сохранения режима редактирования
 
 btnAdd.addEventListener('click', async () => {
     if (!PERMISSIONS[currentRole].canAdd) return;
@@ -250,8 +317,19 @@ btnAdd.addEventListener('click', async () => {
     btnAdd.textContent = '⏳ ...';
 
     try {
-        await fridge.addBatch(name, category, count, unit, finalDays, exactDate, isPerishable, isFrozen, isCooked, price, composition, note);
-        showToast('Добавлено', 'success');
+        if (editingBatchId) {
+            const msInDay = 24 * 60 * 60 * 1000;
+            const expirationDate = exactDate ? new Date(exactDate).getTime() : Date.now() + (finalDays * msInDay);
+            await fridge.updateFullBatch(editingBatchId, {
+                name, category, count: parseFloat(count), unit, expirationDate, isPerishable, isFrozen, isCooked, price, composition, note
+            });
+            editingBatchId = null;
+            btnAdd.classList.replace('bg-blue-600', 'bg-green-500');
+            showToast('Обновлено', 'success');
+        } else {
+            await fridge.addBatch(name, category, count, unit, finalDays, exactDate, isPerishable, isFrozen, isCooked, price, composition, note);
+            showToast('Добавлено', 'success');
+        }
 
         inputName.value = ''; inputCount.value = ''; inputDays.value = ''; inputDate.value = '';
         document.getElementById('p-price').value = '';
@@ -270,6 +348,28 @@ btnAdd.addEventListener('click', async () => {
         btnAdd.textContent = '➕';
     }
 });
+
+btnExport.addEventListener('click', () => { exportToCSV(fridge.batches); });
+btnImport.addEventListener('click', () => { inputCsv.click(); });
+inputCsv.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) { importFromCSV(file, fridge, updateUI); inputCsv.value = ''; }
+});
+
+async function handleAiRequest(mode) {
+    const apiKey = apiKeyInput.value.trim() || sessionStorage.getItem('gemini_api_key');
+    if (!apiKey) { showToast('Введите ключ Gemini в Панели Админа.', 'error'); return; }
+    sessionStorage.setItem('gemini_api_key', apiKey);
+
+    const responseBox = document.getElementById('ai-response-box');
+    responseBox.classList.remove('hidden');
+    responseBox.innerHTML = '<i>⏳ Нейросеть составляет меню...</i>';
+
+    const recipe = await askGeminiRecipe(apiKey, fridge.getProcessedBatches(), mode);
+    responseBox.innerHTML = recipe.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+}
+document.getElementById('btn-ask-ai-rescue').addEventListener('click', () => handleAiRequest('rescue'));
+document.getElementById('btn-ask-ai-all').addEventListener('click', () => handleAiRequest('all'));
 
 async function initApp() {
     try {

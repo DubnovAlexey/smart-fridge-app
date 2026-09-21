@@ -1,6 +1,6 @@
 // ==============================================================================
 // ФАЙЛ: js/utils/translations.js
-// НАЗНАЧЕНИЕ: Словарь для мультиязычности (i18n)
+// НАЗНАЧЕНИЕ: Полный словарь для мультиязычности (i18n)
 // ==============================================================================
 
 export const TRANSLATIONS = {
@@ -25,14 +25,13 @@ export const TRANSLATIONS = {
         price_label: "Цена", comp_label: "Состав", note_label: "Заметка",
         perish_label: "⚠️ Скоропорт", frozen_label: "❄️ В морозилку", cooked_label: "⭐ Требует оценки",
 
-        scan_title: "📷 Скан штрих-кода", scan_wait: "Поместите код в рамку", scan_code: "Код", scan_search: "Ищем в базе...", scan_not_found: "Не найдено в базе",
+        scan_title: "📷 Скан штрих-кода", scan_wait: "Поместите штрих-код в рамку. Ищем фокус...", scan_code: "Код", scan_search: "Ищем в базе...", scan_not_found: "Не найдено в базе",
         what_add_ph: "Напр. Кефир (или скан)", count_ph: "1", days_ph: "Дней", price_ph: "Цена", comp_ph: "Ингредиенты...", note_ph: "Магазин", name_ph: "Ваше имя",
         added: "Добавлено", days_left: "Осталось дней", frozen: "В морозилке", craft_badge: "Крафт / Блюдо", review_family: "Отзыв",
         btn_edit: "Изменить", btn_take: "Взять", btn_rate: "Оценить", btn_waste: "Списать", empty_fridge: "Пусто. Добавьте продукты!",
 
-        // НОВОЕ: ОКНО ВЕРИФИКАЦИИ СКАНЕРА
         preview_title: "📦 Распознан продукт",
-        preview_fake_warn: "⚠️ Внимание: Базы штрих-кодов могут ошибаться. Если название или фото не совпадает с реальностью — возможно, штрих-код переклеен или использован повторно.",
+        preview_fake_warn: "⚠️ Внимание: Базы штрих-кодов могут ошибаться. Если название не совпадает с реальностью — возможно, штрих-код переклеен.",
         btn_preview_add: "✅ Перенести в форму",
         btn_preview_next: "🔄 Сканировать следующий",
         btn_preview_fake: "❌ Ошибка / Подделка",
@@ -65,10 +64,10 @@ export const TRANSLATIONS = {
         btn_edit: "ערוך", btn_take: "קח", btn_rate: "דרג", btn_waste: "זרוק", empty_fridge: "המדפים ריקים!",
 
         preview_title: "📦 מוצר זוהה",
-        preview_fake_warn: "⚠️ שימו לב: אם שם המוצר לא תואם למציאות, ייתכן שהברקוד זויף או מוחזר.",
+        preview_fake_warn: "⚠️ שימו לב: אם שם המוצר לא תואם למציאות, ייתכן שהברקוד זויף.",
         btn_preview_add: "✅ העבר לטופס",
         btn_preview_next: "🔄 סרוק את הבא",
-        btn_preview_fake: "❌ שגיאה במסד / זיוף",
+        btn_preview_fake: "❌ שגיאה / זיוף",
         fake_alert: "התלונה נשלחה! ממשיכים לסרוק..."
     },
     en: {
@@ -93,10 +92,10 @@ export const TRANSLATIONS = {
         btn_edit: "Edit", btn_take: "Take", btn_rate: "Rate", btn_waste: "Waste", empty_fridge: "Shelves are empty!",
 
         preview_title: "📦 Product Recognized",
-        preview_fake_warn: "⚠️ Warning: Database info can be wrong. If the name does not match reality, the barcode might be fake or reused.",
+        preview_fake_warn: "⚠️ Warning: Database info can be wrong. If the name does not match, the barcode might be fake.",
         btn_preview_add: "✅ Add to Form",
         btn_preview_next: "🔄 Scan Next",
-        btn_preview_fake: "❌ Database Error / Fake",
+        btn_preview_fake: "❌ Fake / Error",
         fake_alert: "Report sent! Scanning next..."
     },
     de: {
