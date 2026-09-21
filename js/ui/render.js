@@ -1,7 +1,7 @@
 // ==============================================================================
 // ФАЙЛ: js/ui/render.js
 // НАЗНАЧЕНИЕ: Генерация HTML для списка продуктов и аналитики
-// ЧТО ИЗМЕНЕНО: Добавлен вывод текстовых комментариев к рейтингу и состава.
+// ЧТО ИЗМЕНЕНО: Отзывы теперь подписываются именем конкретного человека.
 // ==============================================================================
 
 export function renderFridgeContents(batches, permissions) {
@@ -23,28 +23,27 @@ export function renderFridgeContents(batches, permissions) {
         const isWarning = batch.daysLeft <= 3 || batch.isPerishable;
         const isCooked = batch.isCooked;
 
-        // Выделяем крафт/блюда стилистически
         const bgClass = isCooked ? 'bg-orange-50/50 border-orange-200 shadow-sm' : 'bg-white border-slate-200 hover:shadow-md transition-shadow';
         const titleColor = isCooked ? 'text-orange-900' : 'text-slate-800';
 
-        // Генерируем блок "Состав и Заметка", если они есть
         let extraInfoHTML = '';
         if (batch.composition || batch.note) {
             extraInfoHTML = `<div class="mt-3 text-xs text-slate-500 bg-white/60 p-2 rounded-lg border border-slate-100">`;
             if (batch.composition) extraInfoHTML += `<p><strong>Состав:</strong> ${batch.composition}</p>`;
-            if (batch.note) extraInfoHTML += `<p><strong>Откуда:</strong> ${batch.note}</p>`;
+            if (batch.note) extraInfoHTML += `<p><strong>Откуда/Магазин:</strong> ${batch.note}</p>`;
             extraInfoHTML += `</div>`;
         }
 
-        // Генерируем красивый блок "Отзыв Семьи", если блюдо было оценено
         let reviewHTML = '';
         if (batch.rating) {
             const stars = '★'.repeat(batch.rating) + '☆'.repeat(5 - batch.rating);
+            const authorName = batch.ratingAuthor || 'Семья';
+
             reviewHTML = `
-                <div class="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <div class="mt-3 bg-yellow-50 border border-yellow-200 rounded-xl p-3 shadow-sm">
                     <div class="flex items-center gap-2 mb-1">
                         <span class="text-yellow-500 text-sm tracking-widest">${stars}</span>
-                        <span class="text-xs font-bold text-yellow-800 uppercase tracking-wider">Оценка семьи</span>
+                        <span class="text-xs font-bold text-yellow-800 uppercase tracking-wider">Отзыв: ${authorName}</span>
                     </div>
                     ${batch.ratingComment ? `<p class="text-sm font-medium text-yellow-900 italic">«${batch.ratingComment}»</p>` : ''}
                 </div>

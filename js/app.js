@@ -1,7 +1,7 @@
 // ==============================================================================
 // ФАЙЛ: js/app.js
 // НАЗНАЧЕНИЕ: Главный Контроллер (Controller). Управляет логикой и связью UI с Firebase.
-// ЧТО ИЗМЕНЕНО: Добавлен скрипт для открытия/закрытия "Расширенных настроек".
+// ЧТО ИЗМЕНЕНО: Добавлен импорт и логика работы сканера штрих-кодов.
 // ==============================================================================
 
 import { FridgeModel } from './models/Fridge.js';
@@ -10,6 +10,7 @@ import { renderFridgeContents, renderAnalytics } from './ui/render.js';
 import { validateProductData, showToast } from './utils/helpers.js';
 import { askGeminiRecipe } from './utils/aiChef.js';
 import { exportToCSV, importFromCSV } from './utils/csvManager.js';
+import { initScanner } from './utils/barcodeScanner.js'; // <--- ПОДКЛЮЧИЛИ СКАНЕР
 
 const PASSWORDS = { admin: 'admin2026', user: '1234' };
 const PERMISSIONS = {
@@ -36,6 +37,7 @@ const inputCount = document.getElementById('p-count');
 const inputDays = document.getElementById('p-days');
 const inputDate = document.getElementById('p-date');
 const apiKeyInput = document.getElementById('api-key-input');
+const userNameInput = document.getElementById('user-name-input');
 
 const btnExport = document.getElementById('btn-export-csv');
 const btnImport = document.getElementById('btn-import-csv');
@@ -49,6 +51,13 @@ roleSelector.value = currentRole;
 
 const savedKey = sessionStorage.getItem('gemini_api_key');
 if (savedKey) apiKeyInput.value = savedKey;
+
+const savedName = localStorage.getItem('smart_fridge_username');
+if (savedName) userNameInput.value = savedName;
+
+userNameInput.addEventListener('input', (e) => {
+    localStorage.setItem('smart_fridge_username', e.target.value.trim());
+});
 
 function updateUI() {
     const perms = PERMISSIONS[currentRole];
@@ -95,9 +104,6 @@ chkGuestTake.addEventListener('change', (e) => { PERMISSIONS.guest.canTake = e.t
 chkGuestWaste.addEventListener('change', (e) => { PERMISSIONS.guest.canWaste = e.target.checked; updateUI(); });
 chkChildTake.addEventListener('change', (e) => { PERMISSIONS.child.canTake = e.target.checked; updateUI(); });
 
-// ==============================================================================
-// НОВОЕ: ЛОГИКА РАСШИРЕННЫХ НАСТРОЕК (UX)
-// ==============================================================================
 const btnToggleAdvanced = document.getElementById('btn-toggle-advanced');
 const advancedSettings = document.getElementById('advanced-settings');
 
@@ -111,8 +117,24 @@ btnToggleAdvanced.addEventListener('click', () => {
 });
 
 // ==============================================================================
-// ЛОГИКА РЕЙТИНГА (ЗВЕЗДОЧКИ)
+// ЛОГИКА СКАНЕРА ШТРИХ-КОДОВ (НОВОЕ)
 // ==============================================================================
+const startBarcodeScanner = initScanner((productName) => {
+    const nameInput = document.getElementById('p-name');
+    if (productName) {
+        // Если продукт найден, вписываем его название
+        nameInput.value = productName;
+    }
+    // В любом случае переводим фокус на поле ввода,
+    // чтобы пользователь мог поправить текст или вписать руками
+    nameInput.focus();
+});
+
+document.getElementById('btn-scan-barcode').addEventListener('click', () => {
+    startBarcodeScanner();
+});
+// ==============================================================================
+
 const ratingModal = document.getElementById('rating-modal');
 const btnCloseRating = document.getElementById('btn-close-rating');
 const ratingStars = document.querySelectorAll('#rating-stars span');
@@ -158,13 +180,25 @@ btnSubmitRating.addEventListener('click', async () => {
     }
     if (!currentRatingBatch) return;
 
+    let author = userNameInput.value.trim();
+    if (!author) {
+        author = prompt("Как вас зовут? Введите имя, чтобы семья знала, чей это отзыв:");
+        if (author) {
+            userNameInput.value = author;
+            localStorage.setItem('smart_fridge_username', author);
+        } else {
+            author = 'Аноним';
+        }
+    }
+
     btnSubmitRating.disabled = true;
     btnSubmitRating.textContent = '⏳ Отправка...';
 
     try {
         await fridge.updateFullBatch(currentRatingBatch.id, {
             rating: selectedStars,
-            ratingComment: ratingComment.value.trim()
+            ratingComment: ratingComment.value.trim(),
+            ratingAuthor: author
         });
         showToast('⭐ Отзыв сохранен!', 'success');
 
@@ -232,7 +266,6 @@ async function handleProductAction(event) {
             }
         }
         else if (action === 'edit' && perms.canAdd) {
-            // При редактировании автоматически открываем расширенные настройки
             advancedSettings.classList.remove('hidden');
             btnToggleAdvanced.textContent = '⚙️ Скрыть настройки ▴';
 
@@ -340,7 +373,6 @@ btnAdd.addEventListener('click', async () => {
         document.getElementById('p-frozen').checked = false;
         document.getElementById('p-cooked').checked = false;
 
-        // Закрываем расширенные настройки после успешного добавления
         advancedSettings.classList.add('hidden');
         btnToggleAdvanced.textContent = '⚙️ Расширенные настройки ▾';
 
