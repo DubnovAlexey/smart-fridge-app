@@ -11,7 +11,6 @@
         @keyframes scan { 0% { top: 5%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 95%; opacity: 0; } }
         @keyframes spin-slow { 100% { transform: rotate(360deg); } }
         .animate-spin-slow { animation: spin-slow 3s linear infinite; }
-        /* Эффект успешного сканирования */
         .scan-success-flash { box-shadow: inset 0 0 0 10px #22c55e !important; transition: all 0.3s ease; }
     </style>
 </head>
@@ -39,6 +38,8 @@
                     <option value="ru" selected>Русский</option>
                     <option value="he">עברית</option>
                     <option value="en">English</option>
+                    <option value="de">Deutsch</option>
+                    <option value="es">Español</option>
                 </select>
             </div>
 
@@ -57,8 +58,36 @@
         </div>
     </header>
 
-    <section id="admin-panel" class="hidden"></section>
-    <section id="rights-panel" class="hidden"></section>
+    <section id="admin-panel" class="hidden bg-slate-800 text-white rounded-2xl p-6 shadow-sm">
+        <h2 class="text-xl font-bold mb-4 flex items-center gap-2" data-i18n="admin_panel_title">🛠️ Системные настройки (Admin)</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label for="api-key-input" class="block text-xs text-slate-400 mb-1" data-i18n="api_key_label">API-ключ Gemini (AI)</label>
+                <input type="text" id="api-key-input" autocomplete="off" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 text-sm outline-none font-mono">
+            </div>
+        </div>
+    </section>
+
+    <section id="rights-panel" class="hidden bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+        <h2 class="text-lg font-bold text-slate-700 mb-4" data-i18n="rights_title">⚙️ Делегирование прав</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <h3 class="font-semibold text-slate-700 mb-2" data-i18n="guest_rights">👤 Права Гостей</h3>
+                <label class="flex items-center gap-2 text-sm text-slate-600 mb-2 cursor-pointer">
+                    <input type="checkbox" id="perm-guest-take" class="w-4 h-4 rounded text-blue-600"> <span data-i18n="allow_take">Разрешить брать</span>
+                </label>
+                <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                    <input type="checkbox" id="perm-guest-waste" class="w-4 h-4 rounded text-blue-600"> <span data-i18n="allow_waste">Разрешить списывать</span>
+                </label>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <h3 class="font-semibold text-slate-700 mb-2" data-i18n="child_rights">🧒 Права Детей</h3>
+                <label class="flex items-center gap-2 text-sm text-slate-600 mb-2 cursor-pointer">
+                    <input type="checkbox" id="perm-child-take" class="w-4 h-4 rounded text-blue-600"> <span data-i18n="allow_take">Разрешить брать</span>
+                </label>
+            </div>
+        </div>
+    </section>
 
     <section id="analytics-panel" class="bg-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
         <div class="flex-1">
@@ -70,6 +99,10 @@
                 <div class="text-red-500 font-semibold"><span data-i18n="wasted">🗑 Списано:</span> <span id="stat-wasted">0</span></div>
                 <div class="text-slate-500 font-semibold"><span data-i18n="lost">💸 Потери:</span> <span id="stat-money">0</span> ₽</div>
             </div>
+        </div>
+        <div class="flex gap-3">
+            <button id="btn-export-csv" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2 rounded-lg transition text-sm">📥 CSV</button>
+            <input type="file" id="input-csv" accept=".csv" class="hidden">
         </div>
     </section>
 
@@ -168,14 +201,13 @@
         </div>
     </section>
 
-    <!-- 7. ПОЛКИ -->
     <section class="bg-white rounded-2xl p-6 shadow-sm">
         <h2 class="text-2xl font-black text-slate-800 mb-6 border-b pb-4" data-i18n="shelves_title">🧊 Содержимое полок</h2>
         <div id="fridge-shelves" class="space-y-4"></div>
     </section>
 </div>
 
-<!-- ОКНО СКАНЕРА С ЗЕЛЕНОЙ ВСПЫШКОЙ -->
+<!-- СКАНЕР ШТРИХ-КОДА -->
 <div id="scanner-modal" class="hidden fixed inset-0 bg-slate-900/95 backdrop-blur-md z-[60] flex flex-col justify-center items-center p-4 transition-opacity">
     <div id="scanner-container" class="w-full max-w-md bg-white rounded-3xl overflow-hidden flex flex-col relative shadow-2xl transition-all duration-300">
         <div class="p-5 bg-indigo-600 text-white flex justify-between items-center transition-colors duration-300" id="scanner-header">
@@ -183,13 +215,44 @@
             <button id="btn-close-scanner" class="text-white hover:text-indigo-200 text-4xl leading-none font-light">&times;</button>
         </div>
 
-        <div class="relative w-full bg-black min-h-[300px] flex items-center justify-center overflow-hidden">
-            <div id="reader" class="w-full"></div>
-            <div id="scanner-laser" class="hidden absolute left-0 w-full h-1 bg-red-500 shadow-[0_0_15px_3px_red] z-50 animate-[scan_2s_linear_infinite] pointer-events-none"></div>
+        <div class="relative w-full bg-black flex items-center justify-center overflow-hidden" style="min-height: 350px;">
+            <div id="reader" class="w-full absolute inset-0"></div>
+            <div id="scanner-target-box" class="absolute z-50 w-64 h-40 border-4 border-red-500 rounded-2xl pointer-events-none transition-all duration-300 flex items-center justify-center">
+                <div class="w-full h-0.5 bg-red-500/50 shadow-[0_0_10px_2px_red] animate-[scan_2s_linear_infinite]" id="scanner-laser"></div>
+            </div>
         </div>
 
         <div id="scanner-status" class="p-6 text-center text-sm font-semibold bg-slate-50 text-slate-600 transition-colors" data-i18n="scan_wait">
             Поместите штрих-код в центр рамки. Сфокусируйте камеру.
+        </div>
+    </div>
+</div>
+
+<!-- НОВОЕ: ОКНО ПРЕВЬЮ ПРОДУКТА -->
+<div id="scan-preview-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[70] flex flex-col justify-center items-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 relative">
+        <h3 class="text-xl font-black text-indigo-600 mb-4 flex items-center gap-2" data-i18n="preview_title">📦 Распознан продукт</h3>
+
+        <div class="flex gap-4 mb-4">
+            <img id="preview-img" src="" class="hidden w-20 h-20 object-cover rounded-xl shadow-sm border border-slate-200" />
+            <div>
+                <div id="preview-name" class="font-bold text-lg text-slate-800 leading-tight"></div>
+                <div id="preview-barcode" class="text-xs text-slate-400 font-mono mt-1"></div>
+            </div>
+        </div>
+
+        <div id="preview-ingredients-box" class="hidden mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 max-h-24 overflow-y-auto">
+            <strong data-i18n="comp_label">Состав:</strong> <span id="preview-ingredients"></span>
+        </div>
+
+        <p class="text-xs text-red-500 mb-6 font-medium bg-red-50 p-3 rounded-xl border border-red-100 leading-snug" data-i18n="preview_fake_warn">
+            ⚠️ Внимание: Базы штрих-кодов могут ошибаться. Если название не совпадает с реальностью — возможно, штрих-код поддельный.
+        </p>
+
+        <div class="flex flex-col gap-3">
+            <button id="btn-preview-add" class="w-full bg-green-500 hover:bg-green-600 text-white font-black py-3 rounded-xl transition" data-i18n="btn_preview_add">✅ Перенести в форму</button>
+            <button id="btn-preview-next" class="w-full bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-bold py-3 rounded-xl transition" data-i18n="btn_preview_next">🔄 Сканировать следующий</button>
+            <button id="btn-preview-fake" class="w-full text-slate-400 hover:text-red-500 font-bold py-2 text-sm transition" data-i18n="btn_preview_fake">❌ Ошибка / Подделка</button>
         </div>
     </div>
 </div>

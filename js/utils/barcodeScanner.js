@@ -1,10 +1,10 @@
 // ==============================================================================
 // ФАЙЛ: js/utils/barcodeScanner.js
-// НАЗНАЧЕНИЕ: Сканнер с улучшенной рамкой и визуальной зеленой вспышкой
+// НАЗНАЧЕНИЕ: Сканнер с запросом полной информации о продукте (фото, состав)
 // ==============================================================================
 
 import { showToast } from './helpers.js';
-import { t } from './translations.js'; // Подключили переводы
+import { t } from './translations.js';
 
 let html5QrCode = null;
 let isProcessing = false;
@@ -16,10 +16,23 @@ async function fetchProductByBarcode(barcode) {
         const data = await response.json();
 
         if (data.status === 1 && data.product) {
-            const product = data.product;
-            const name = product.product_name_ru || product.product_name || '';
+            const p = data.product;
+            const name = p.product_name_ru || p.product_name || '';
             if (!name) return null;
-            return name.trim();
+
+            const brand = p.brands ? p.brands.split(',')[0] : '';
+            let fullName = name;
+            if (brand && !name.toLowerCase().includes(brand.toLowerCase())) {
+                fullName = `${brand} ${name}`;
+            }
+
+            // Возвращаем богатый объект данных
+            return {
+                barcode: barcode,
+                name: fullName.trim(),
+                image: p.image_front_url || '',
+                ingredients: p.ingredients_text_ru || p.ingredients_text || ''
+            };
         }
         return null;
     } catch (error) {
@@ -29,55 +42,58 @@ async function fetchProductByBarcode(barcode) {
 
 export function initScanner(onSuccessCallback) {
     const scannerModal = document.getElementById('scanner-modal');
+    const targetBox = document.getElementById('scanner-target-box');
+    const btnCloseScanner = document.getElementById('btn-close-scanner');
+    const statusText = document.getElementById('scanner-status');
+    const laser = document.getElementById('scanner-laser');
     const scannerContainer = document.getElementById('scanner-container');
     const header = document.getElementById('scanner-header');
-    const btnCloseScanner = document.getElementById('btn-close-scanner');
-    const laser = document.getElementById('scanner-laser');
-    const statusText = document.getElementById('scanner-status');
 
     function startScanner() {
         isProcessing = false;
         scannerModal.classList.remove('hidden');
 
-        // Сброс визуальных стилей в начальное состояние
         scannerContainer.classList.remove('scan-success-flash');
         header.classList.replace('bg-green-600', 'bg-indigo-600');
+        targetBox.classList.replace('border-green-500', 'border-red-500');
+        targetBox.classList.remove('bg-green-500/20');
         laser.classList.remove('hidden');
 
-        // Перевод стартового текста
-        statusText.innerHTML = t('scan_wait');
+        statusText.innerHTML = t('scan_wait') || 'Поместите штрих-код в центр рамки...';
         statusText.className = 'p-6 text-center text-sm font-semibold bg-slate-50 text-slate-600 transition-colors';
 
         html5QrCode = new Html5Qrcode("reader");
 
         html5QrCode.start(
             { facingMode: "environment" },
-            // Увеличили рамку, чтобы мелкие штрихкоды вроде Orbit ловились проще
             { fps: 10, qrbox: { width: 300, height: 200 } },
             async (decodedText) => {
                 if (isProcessing) return;
                 isProcessing = true;
 
-                // === ЗЕЛЕНАЯ ВСПЫШКА УСПЕХА ===
+                targetBox.classList.replace('border-red-500', 'border-green-500');
+                targetBox.classList.add('bg-green-500/20');
                 laser.classList.add('hidden');
-                scannerContainer.classList.add('scan-success-flash'); // Рамка окна зеленеет
-                header.classList.replace('bg-indigo-600', 'bg-green-600'); // Шапка зеленеет
+                scannerContainer.classList.add('scan-success-flash');
+                header.classList.replace('bg-indigo-600', 'bg-green-600');
+
+                if (navigator.vibrate) navigator.vibrate(200);
 
                 statusText.innerHTML = `✅ ${t('scan_code')} <b>${decodedText}</b>!<br><span class="text-xs">⏳ ${t('scan_search')}</span>`;
                 statusText.classList.replace('text-slate-600', 'text-green-600');
                 statusText.classList.replace('bg-slate-50', 'bg-green-50');
 
-                const productName = await fetchProductByBarcode(decodedText);
+                const productData = await fetchProductByBarcode(decodedText);
 
-                await stopScanner();
-
-                if (productName) {
-                    showToast(`Найдено: ${productName}`, 'success');
-                    onSuccessCallback(productName);
-                } else {
-                    showToast(`Не найдено.`, 'error');
-                    onSuccessCallback('');
-                }
+                setTimeout(async () => {
+                    await stopScanner();
+                    if (productData) {
+                        onSuccessCallback(productData);
+                    } else {
+                        showToast(t('scan_not_found') || 'Не найдено.', 'error');
+                        onSuccessCallback(null);
+                    }
+                }, 1000);
             },
             (errorMessage) => { }
         ).catch((err) => {

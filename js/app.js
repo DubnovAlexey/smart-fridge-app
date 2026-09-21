@@ -1,7 +1,6 @@
 // ==============================================================================
 // ФАЙЛ: js/app.js
-// НАЗНАЧЕНИЕ: Главный Контроллер (Controller).
-// ЧТО ИЗМЕНЕНО: Добавлен парсинг data-i18n-placeholder для текстовых полей.
+// НАЗНАЧЕНИЕ: Главный Контроллер (Controller). Управляет логикой и связью UI с Firebase.
 // ==============================================================================
 
 import { FridgeModel } from './models/Fridge.js';
@@ -9,9 +8,10 @@ import { AnalyticsModel } from './models/Analytics.js';
 import { renderFridgeContents, renderAnalytics } from './ui/render.js';
 import { validateProductData, showToast } from './utils/helpers.js';
 import { askGeminiRecipe } from './utils/aiChef.js';
+import { exportToCSV, importFromCSV } from './utils/csvManager.js';
 import { initScanner } from './utils/barcodeScanner.js';
 import { guessExpirationDays } from './utils/gostDB.js';
-import { TRANSLATIONS } from './utils/translations.js';
+import { TRANSLATIONS, t } from './utils/translations.js';
 
 const PASSWORDS = { admin: 'admin2026', user: '1234' };
 const PERMISSIONS = {
@@ -38,6 +38,8 @@ const inputDate = document.getElementById('p-date');
 const userNameInput = document.getElementById('user-name-input');
 const langSelector = document.getElementById('lang-selector');
 const loaderOverlay = document.getElementById('loader-overlay');
+const adminPanel = document.getElementById('admin-panel');
+const rightsPanel = document.getElementById('rights-panel');
 
 roleSelector.value = currentRole;
 
@@ -48,7 +50,6 @@ userNameInput.addEventListener('input', (e) => {
     localStorage.setItem('smart_fridge_username', e.target.value.trim());
 });
 
-// ПЕРЕВОДЧИК ИНТЕРФЕЙСА
 function applyTranslations(lang) {
     const dict = TRANSLATIONS[lang];
     if (!dict) return;
@@ -57,20 +58,19 @@ function applyTranslations(lang) {
 
     setTimeout(() => {
         document.body.dir = dict.dir;
+        document.documentElement.lang = lang;
 
-        // 1. Переводим обычный текст и опции
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.getAttribute('data-i18n');
             if (dict[key]) el.innerHTML = dict[key];
         });
 
-        // 2. Переводим Placeholders (серый текст в полях ввода)
         document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
             const key = el.getAttribute('data-i18n-placeholder');
             if (dict[key]) el.placeholder = dict[key];
         });
 
-        updateUI(); // Перерисовываем карточки
+        updateUI();
         loaderOverlay.classList.add('hidden');
     }, 400);
 }
@@ -79,6 +79,17 @@ langSelector.addEventListener('change', (e) => {
     window.appLang = e.target.value;
     applyTranslations(window.appLang);
 });
+
+function updateUI() {
+    const perms = PERMISSIONS[currentRole];
+    adminPanel.classList.toggle('hidden', currentRole !== 'admin');
+    rightsPanel.classList.toggle('hidden', currentRole !== 'admin');
+    addFormPanel.classList.toggle('hidden', !perms.canAdd);
+
+    const batches = fridge.getProcessedBatches();
+    renderFridgeContents(batches, perms);
+    renderAnalytics(analytics.getStats());
+}
 
 inputName.addEventListener('blur', () => {
     const nameVal = inputName.value.trim();
@@ -92,15 +103,6 @@ inputName.addEventListener('blur', () => {
         }
     }
 });
-
-function updateUI() {
-    const perms = PERMISSIONS[currentRole];
-    addFormPanel.classList.toggle('hidden', !perms.canAdd);
-
-    const batches = fridge.getProcessedBatches();
-    renderFridgeContents(batches, perms);
-    renderAnalytics(analytics.getStats());
-}
 
 inputDays.addEventListener('input', () => { if (inputDays.value !== '') inputDate.value = ''; });
 inputDate.addEventListener('input', () => { if (inputDate.value !== '') inputDays.value = ''; });
@@ -124,15 +126,73 @@ btnToggleAdvanced.addEventListener('click', () => {
     advancedSettings.classList.toggle('hidden');
 });
 
-const startBarcodeScanner = initScanner((productName) => {
-    if (productName) {
-        inputName.value = productName;
-        const days = guessExpirationDays(productName, inputCategory.value);
-        if (days && !inputDays.value && !inputDate.value) inputDays.value = days;
+// ==============================================================================
+// ЛОГИКА ОКНА ПРЕВЬЮ СКАНЕРА
+// ==============================================================================
+const previewModal = document.getElementById('scan-preview-modal');
+const previewName = document.getElementById('preview-name');
+const previewBarcode = document.getElementById('preview-barcode');
+const previewImg = document.getElementById('preview-img');
+const previewIngredients = document.getElementById('preview-ingredients');
+const previewIngredientsBox = document.getElementById('preview-ingredients-box');
+
+let scannedProductTemp = null;
+
+const startBarcodeScanner = initScanner((productData) => {
+    if (productData && productData.name) {
+        scannedProductTemp = productData;
+        previewName.textContent = productData.name;
+        previewBarcode.textContent = `${t('scan_code')}: ${productData.barcode}`;
+
+        if (productData.image) {
+            previewImg.src = productData.image;
+            previewImg.classList.remove('hidden');
+        } else {
+            previewImg.classList.add('hidden');
+        }
+
+        if (productData.ingredients) {
+            previewIngredients.textContent = productData.ingredients;
+            previewIngredientsBox.classList.remove('hidden');
+        } else {
+            previewIngredientsBox.classList.add('hidden');
+        }
+
+        previewModal.classList.remove('hidden');
+    } else {
+        inputName.focus();
     }
-    inputName.focus();
 });
+
 document.getElementById('btn-scan-barcode').addEventListener('click', startBarcodeScanner);
+
+// Кнопки внутри окна превью
+document.getElementById('btn-preview-add').addEventListener('click', () => {
+    previewModal.classList.add('hidden');
+    if (scannedProductTemp) {
+        inputName.value = scannedProductTemp.name;
+        if (scannedProductTemp.ingredients) {
+            document.getElementById('p-composition').value = scannedProductTemp.ingredients.substring(0, 100);
+            advancedSettings.classList.remove('hidden'); // Открываем настройки, чтобы показать состав
+        }
+        const days = guessExpirationDays(scannedProductTemp.name, inputCategory.value);
+        if (days) inputDays.value = days;
+        inputCount.focus(); // Предлагаем сразу ввести количество
+    }
+});
+
+document.getElementById('btn-preview-next').addEventListener('click', () => {
+    previewModal.classList.add('hidden');
+    startBarcodeScanner();
+});
+
+document.getElementById('btn-preview-fake').addEventListener('click', () => {
+    previewModal.classList.add('hidden');
+    showToast(t('fake_alert') || 'Жалоба отправлена! Сканируем дальше...', 'info');
+    startBarcodeScanner();
+});
+
+// ==============================================================================
 
 async function handleProductAction(event) {
     const btn = event.target.closest('button');
@@ -175,6 +235,12 @@ btnAdd.addEventListener('click', async () => {
     const count = inputCount.value;
     const unit = inputUnit.value;
     const exactDate = inputDate.value;
+    const price = document.getElementById('p-price').value;
+    const composition = document.getElementById('p-composition').value;
+    const note = document.getElementById('p-note').value;
+    const isPerishable = document.getElementById('p-perishable').checked;
+    const isFrozen = document.getElementById('p-frozen').checked;
+    const isCooked = document.getElementById('p-cooked').checked;
 
     let finalDays = inputDays.value;
     const validationResult = validateProductData(name, count, finalDays, exactDate);
@@ -184,10 +250,18 @@ btnAdd.addEventListener('click', async () => {
     btnAdd.textContent = '⏳ ...';
 
     try {
-        await fridge.addBatch(name, category, count, unit, finalDays, exactDate, false, false, false, 0, '', '');
+        await fridge.addBatch(name, category, count, unit, finalDays, exactDate, isPerishable, isFrozen, isCooked, price, composition, note);
         showToast('Добавлено', 'success');
 
         inputName.value = ''; inputCount.value = ''; inputDays.value = ''; inputDate.value = '';
+        document.getElementById('p-price').value = '';
+        document.getElementById('p-composition').value = '';
+        document.getElementById('p-note').value = '';
+        document.getElementById('p-perishable').checked = false;
+        document.getElementById('p-frozen').checked = false;
+        document.getElementById('p-cooked').checked = false;
+
+        advancedSettings.classList.add('hidden');
         updateUI();
     } catch (error) {
         showToast('Ошибка', 'error');
