@@ -1,7 +1,7 @@
 // ==============================================================================
 // ФАЙЛ: js/app.js
-// НАЗНАЧЕНИЕ: Главный Контроллер (Controller). Управляет логикой и связью UI с Firebase.
-// ЧТО ИЗМЕНЕНО: Добавлена интеграция с локальной базой ГОСТов (Авто-сроки).
+// НАЗНАЧЕНИЕ: Главный Контроллер (Controller).
+// ЧТО ИЗМЕНЕНО: Добавлен парсинг data-i18n-placeholder для текстовых полей.
 // ==============================================================================
 
 import { FridgeModel } from './models/Fridge.js';
@@ -9,51 +9,37 @@ import { AnalyticsModel } from './models/Analytics.js';
 import { renderFridgeContents, renderAnalytics } from './ui/render.js';
 import { validateProductData, showToast } from './utils/helpers.js';
 import { askGeminiRecipe } from './utils/aiChef.js';
-import { exportToCSV, importFromCSV } from './utils/csvManager.js';
 import { initScanner } from './utils/barcodeScanner.js';
-import { guessExpirationDays } from './utils/gostDB.js'; // <--- БАЗА ГОСТОВ
+import { guessExpirationDays } from './utils/gostDB.js';
+import { TRANSLATIONS } from './utils/translations.js';
 
 const PASSWORDS = { admin: 'admin2026', user: '1234' };
 const PERMISSIONS = {
-    admin: { canAdd: true, canTake: true, canWaste: true, canSeeAnalytics: true, canSeeAdmin: true, canManageRights: true },
-    user:  { canAdd: true, canTake: true, canWaste: true, canSeeAnalytics: true, canSeeAdmin: false, canManageRights: true },
-    guest: { canAdd: true, canTake: false, canWaste: false, canSeeAnalytics: false, canSeeAdmin: false, canManageRights: false },
-    child: { canAdd: false, canTake: false, canWaste: false, canSeeAnalytics: false, canSeeAdmin: false, canManageRights: false }
+    admin: { canAdd: true, canTake: true, canWaste: true },
+    user:  { canAdd: true, canTake: true, canWaste: true },
+    guest: { canAdd: true, canTake: false, canWaste: false }
 };
 
 const fridge = new FridgeModel();
 const analytics = new AnalyticsModel();
 
-let currentRole = 'guest';
-let editingBatchId = null;
+let currentRole = 'user';
+window.appLang = 'ru';
 
 const roleSelector = document.getElementById('role-selector');
-const adminPanel = document.getElementById('admin-panel');
-const rightsPanel = document.getElementById('rights-panel');
-const analyticsPanel = document.getElementById('analytics-panel');
 const addFormPanel = document.getElementById('add-form-panel');
 const btnAdd = document.getElementById('btn-add');
-const inputName = document.getElementById('p-name'); // Поле названия
-const inputCategory = document.getElementById('p-category'); // Поле категории
+const inputName = document.getElementById('p-name');
+const inputCategory = document.getElementById('p-category');
 const inputUnit = document.getElementById('p-unit');
 const inputCount = document.getElementById('p-count');
 const inputDays = document.getElementById('p-days');
 const inputDate = document.getElementById('p-date');
-const apiKeyInput = document.getElementById('api-key-input');
 const userNameInput = document.getElementById('user-name-input');
-
-const btnExport = document.getElementById('btn-export-csv');
-const btnImport = document.getElementById('btn-import-csv');
-const inputCsv = document.getElementById('input-csv');
-
-const chkGuestTake = document.getElementById('perm-guest-take');
-const chkGuestWaste = document.getElementById('perm-guest-waste');
-const chkChildTake = document.getElementById('perm-child-take');
+const langSelector = document.getElementById('lang-selector');
+const loaderOverlay = document.getElementById('loader-overlay');
 
 roleSelector.value = currentRole;
-
-const savedKey = sessionStorage.getItem('gemini_api_key');
-if (savedKey) apiKeyInput.value = savedKey;
 
 const savedName = localStorage.getItem('smart_fridge_username');
 if (savedName) userNameInput.value = savedName;
@@ -62,42 +48,53 @@ userNameInput.addEventListener('input', (e) => {
     localStorage.setItem('smart_fridge_username', e.target.value.trim());
 });
 
-// ==============================================================================
-// УМНАЯ ПОДСТАНОВКА СРОКОВ ИЗ БАЗЫ ГОСТОВ
-// Срабатывает, когда пользователь закончил писать название и убрал курсор (blur)
-// ==============================================================================
+// ПЕРЕВОДЧИК ИНТЕРФЕЙСА
+function applyTranslations(lang) {
+    const dict = TRANSLATIONS[lang];
+    if (!dict) return;
+
+    loaderOverlay.classList.remove('hidden');
+
+    setTimeout(() => {
+        document.body.dir = dict.dir;
+
+        // 1. Переводим обычный текст и опции
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (dict[key]) el.innerHTML = dict[key];
+        });
+
+        // 2. Переводим Placeholders (серый текст в полях ввода)
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            const key = el.getAttribute('data-i18n-placeholder');
+            if (dict[key]) el.placeholder = dict[key];
+        });
+
+        updateUI(); // Перерисовываем карточки
+        loaderOverlay.classList.add('hidden');
+    }, 400);
+}
+
+langSelector.addEventListener('change', (e) => {
+    window.appLang = e.target.value;
+    applyTranslations(window.appLang);
+});
+
 inputName.addEventListener('blur', () => {
     const nameVal = inputName.value.trim();
     const catVal = inputCategory.value;
-
-    // Если имя введено, а поле "Дней" и "Дата" пустые
     if (nameVal && !inputDays.value && !inputDate.value) {
         const days = guessExpirationDays(nameVal, catVal);
         if (days) {
             inputDays.value = days;
-            // Легкая анимация подсветки, чтобы пользователь заметил магию
             inputDays.classList.add('bg-green-100', 'transition', 'duration-500');
             setTimeout(() => inputDays.classList.remove('bg-green-100'), 1500);
         }
     }
 });
 
-// Пересчет при смене категории, если название уже написано
-inputCategory.addEventListener('change', () => {
-    const nameVal = inputName.value.trim();
-    const catVal = inputCategory.value;
-    if (nameVal && !inputDate.value) {
-        const days = guessExpirationDays(nameVal, catVal);
-        if (days) inputDays.value = days;
-    }
-});
-// ==============================================================================
-
 function updateUI() {
     const perms = PERMISSIONS[currentRole];
-    adminPanel.classList.toggle('hidden', !perms.canSeeAdmin);
-    rightsPanel.classList.toggle('hidden', !perms.canManageRights);
-    analyticsPanel.classList.toggle('hidden', !perms.canSeeAnalytics);
     addFormPanel.classList.toggle('hidden', !perms.canAdd);
 
     const batches = fridge.getProcessedBatches();
@@ -110,244 +107,65 @@ inputDate.addEventListener('input', () => { if (inputDate.value !== '') inputDay
 
 roleSelector.addEventListener('change', (event) => {
     const selectedRole = event.target.value;
-    let isAuthenticated = true;
-
     if (selectedRole === 'admin') {
-        const pass = prompt('Вход для Администратора. Введите пароль:');
-        if (pass !== PASSWORDS.admin) isAuthenticated = false;
-    } else if (selectedRole === 'user') {
-        const pass = prompt('Вход для Пользователя. Введите пароль:');
-        if (pass !== PASSWORDS.user) isAuthenticated = false;
-    }
-
-    if (isAuthenticated) {
-        currentRole = selectedRole;
-        if (currentRole !== 'admin') {
-            sessionStorage.removeItem('gemini_api_key');
-            apiKeyInput.value = '';
+        if (prompt('Пароль:') !== PASSWORDS.admin) {
+            showToast('Доступ запрещен', 'error');
+            roleSelector.value = currentRole;
+            return;
         }
-        updateUI();
-        showToast(`Вы вошли как: ${selectedRole.toUpperCase()}`, 'success');
-    } else {
-        showToast('Неверный пароль! Доступ запрещен.', 'error');
-        roleSelector.value = currentRole;
     }
+    currentRole = selectedRole;
+    updateUI();
 });
-
-chkGuestTake.addEventListener('change', (e) => { PERMISSIONS.guest.canTake = e.target.checked; updateUI(); });
-chkGuestWaste.addEventListener('change', (e) => { PERMISSIONS.guest.canWaste = e.target.checked; updateUI(); });
-chkChildTake.addEventListener('change', (e) => { PERMISSIONS.child.canTake = e.target.checked; updateUI(); });
 
 const btnToggleAdvanced = document.getElementById('btn-toggle-advanced');
 const advancedSettings = document.getElementById('advanced-settings');
-
 btnToggleAdvanced.addEventListener('click', () => {
     advancedSettings.classList.toggle('hidden');
-    if (advancedSettings.classList.contains('hidden')) {
-        btnToggleAdvanced.textContent = '⚙️ Расширенные настройки ▾';
-    } else {
-        btnToggleAdvanced.textContent = '⚙️ Скрыть настройки ▴';
-    }
 });
 
 const startBarcodeScanner = initScanner((productName) => {
     if (productName) {
         inputName.value = productName;
-        // После сканирования тоже запускаем автоподбор срока
-        const catVal = inputCategory.value;
-        const days = guessExpirationDays(productName, catVal);
-        if (days && !inputDays.value && !inputDate.value) {
-            inputDays.value = days;
-            inputDays.classList.add('bg-green-100', 'transition', 'duration-500');
-            setTimeout(() => inputDays.classList.remove('bg-green-100'), 1500);
-        }
+        const days = guessExpirationDays(productName, inputCategory.value);
+        if (days && !inputDays.value && !inputDate.value) inputDays.value = days;
     }
     inputName.focus();
 });
-
-document.getElementById('btn-scan-barcode').addEventListener('click', () => {
-    startBarcodeScanner();
-});
-
-const ratingModal = document.getElementById('rating-modal');
-const btnCloseRating = document.getElementById('btn-close-rating');
-const ratingStars = document.querySelectorAll('#rating-stars span');
-const btnSubmitRating = document.getElementById('btn-submit-rating');
-const ratingComment = document.getElementById('rating-comment');
-const ratingMealName = document.getElementById('rating-meal-name');
-
-let currentRatingBatch = null;
-let selectedStars = 0;
-
-function closeRatingModal() {
-    ratingModal.classList.add('hidden');
-    currentRatingBatch = null;
-    selectedStars = 0;
-    ratingComment.value = '';
-    updateStarsUI();
-}
-
-btnCloseRating.addEventListener('click', closeRatingModal);
-
-function updateStarsUI() {
-    ratingStars.forEach(star => {
-        const val = parseInt(star.dataset.val);
-        if (val <= selectedStars) {
-            star.classList.replace('text-slate-200', 'text-orange-400');
-        } else {
-            star.classList.replace('text-orange-400', 'text-slate-200');
-        }
-    });
-}
-
-ratingStars.forEach(star => {
-    star.addEventListener('click', (e) => {
-        selectedStars = parseInt(e.target.dataset.val);
-        updateStarsUI();
-    });
-});
-
-btnSubmitRating.addEventListener('click', async () => {
-    if (selectedStars === 0) {
-        showToast('Пожалуйста, поставьте оценку от 1 до 5 звезд!', 'error');
-        return;
-    }
-    if (!currentRatingBatch) return;
-
-    let author = userNameInput.value.trim();
-    if (!author) {
-        author = prompt("Как вас зовут? Введите имя, чтобы семья знала, чей это отзыв:");
-        if (author) {
-            userNameInput.value = author;
-            localStorage.setItem('smart_fridge_username', author);
-        } else {
-            author = 'Аноним';
-        }
-    }
-
-    btnSubmitRating.disabled = true;
-    btnSubmitRating.textContent = '⏳ Отправка...';
-
-    try {
-        await fridge.updateFullBatch(currentRatingBatch.id, {
-            rating: selectedStars,
-            ratingComment: ratingComment.value.trim(),
-            ratingAuthor: author
-        });
-        showToast('⭐ Отзыв сохранен!', 'success');
-
-        const batch = currentRatingBatch;
-        closeRatingModal();
-        promptAndConsume(batch);
-
-    } catch(error) {
-        showToast('❌ Ошибка связи с сервером', 'error');
-    } finally {
-        btnSubmitRating.disabled = false;
-        btnSubmitRating.textContent = 'Отправить отзыв';
-    }
-});
-
-async function promptAndConsume(batch) {
-    const amountStr = prompt(`Сколько "${batch.unit}" взять? (Доступно: ${batch.count})`, "1");
-    if (amountStr !== null) {
-        const amount = parseFloat(amountStr);
-        if (!isNaN(amount) && amount > 0) {
-            try {
-                if (amount >= batch.count) {
-                    await analytics.recordConsumption(batch.count);
-                    await fridge.removeBatch(batch.id);
-                } else {
-                    await analytics.recordConsumption(amount);
-                    const newCount = batch.count - amount;
-                    const newPrice = batch.price * (newCount / batch.count);
-                    await fridge.updateFullBatch(batch.id, { count: newCount, price: newPrice });
-                }
-                updateUI();
-            } catch (error) {
-                showToast('❌ Ошибка связи с сервером', 'error');
-            }
-        } else { showToast('Введите корректное число больше нуля.', 'error'); }
-    } else {
-        updateUI();
-    }
-}
+document.getElementById('btn-scan-barcode').addEventListener('click', startBarcodeScanner);
 
 async function handleProductAction(event) {
     const btn = event.target.closest('button');
     if (!btn) return;
     const id = btn.dataset.id;
     const action = btn.dataset.action;
-    if (!id || !action) return;
     const batch = fridge.getBatchById(id);
     if (!batch) return;
-    const perms = PERMISSIONS[currentRole];
 
-    try {
-        if (action === 'rate-and-consume' && perms.canTake) {
-            currentRatingBatch = batch;
-            ratingMealName.textContent = batch.name;
-            ratingModal.classList.remove('hidden');
-        }
-        else if (action === 'consume' && perms.canTake) {
-            await promptAndConsume(batch);
-        }
-        else if (action === 'waste' && perms.canWaste) {
-            if (confirm(`Вы уверены, что хотите выбросить "${batch.name}"?`)) {
-                await analytics.recordWaste(batch.count, batch.price);
-                await fridge.removeBatch(id);
+    if (action === 'consume' && PERMISSIONS[currentRole].canTake) {
+        const amountStr = prompt(`Сколько "${batch.unit}" взять? (Доступно: ${batch.count})`, "1");
+        if (amountStr !== null) {
+            const amount = parseFloat(amountStr);
+            if (!isNaN(amount) && amount > 0) {
+                if (amount >= batch.count) {
+                    await analytics.recordConsumption(batch.count);
+                    await fridge.removeBatch(id);
+                } else {
+                    await analytics.recordConsumption(amount);
+                    await fridge.updateFullBatch(id, { count: batch.count - amount });
+                }
                 updateUI();
             }
         }
-        else if (action === 'edit' && perms.canAdd) {
-            advancedSettings.classList.remove('hidden');
-            btnToggleAdvanced.textContent = '⚙️ Скрыть настройки ▴';
-
-            inputName.value = batch.name;
-            inputCategory.value = batch.category;
-            inputCount.value = batch.count;
-            inputUnit.value = batch.unit;
-
-            const expDate = new Date(batch.expirationDate);
-            const yyyy = expDate.getFullYear();
-            const mm = String(expDate.getMonth() + 1).padStart(2, '0');
-            const dd = String(expDate.getDate()).padStart(2, '0');
-
-            inputDate.value = `${yyyy}-${mm}-${dd}`;
-            inputDays.value = '';
-
-            document.getElementById('p-price').value = batch.price || '';
-            document.getElementById('p-composition').value = batch.composition || '';
-            document.getElementById('p-note').value = batch.note || '';
-
-            document.getElementById('p-perishable').checked = batch.isPerishable;
-            document.getElementById('p-frozen').checked = batch.isFrozen;
-            document.getElementById('p-cooked').checked = batch.isCooked || false;
-
-            editingBatchId = id;
-            btnAdd.textContent = '💾 Сохранить изменения';
-            btnAdd.classList.replace('bg-green-500', 'bg-blue-600');
-            btnAdd.classList.replace('hover:bg-green-600', 'hover:bg-blue-700');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (action === 'waste' && PERMISSIONS[currentRole].canWaste) {
+        if (confirm(`Выбросить "${batch.name}"?`)) {
+            await analytics.recordWaste(batch.count, batch.price);
+            await fridge.removeBatch(id);
+            updateUI();
         }
-    } catch (error) {
-        showToast('❌ Ошибка связи с сервером', 'error');
-        console.error("Сбой сети:", error);
     }
 }
-
 document.getElementById('fridge-shelves').addEventListener('click', handleProductAction);
-
-inputUnit.addEventListener('change', (event) => {
-    const val = event.target.value;
-    if (val === 'шт' || val === 'упак' || val === 'порц' || val === 'банка') {
-        inputCount.step = '1'; inputCount.placeholder = '1, 2...';
-    } else if (val === 'гр' || val === 'мл') {
-        inputCount.step = '1'; inputCount.placeholder = '100, 250...';
-    } else if (val === 'кг' || val === 'л') {
-        inputCount.step = '0.1'; inputCount.placeholder = '1.5, 0.2...';
-    }
-});
 
 btnAdd.addEventListener('click', async () => {
     if (!PERMISSIONS[currentRole].canAdd) return;
@@ -357,145 +175,35 @@ btnAdd.addEventListener('click', async () => {
     const count = inputCount.value;
     const unit = inputUnit.value;
     const exactDate = inputDate.value;
-    const price = document.getElementById('p-price').value;
-    const composition = document.getElementById('p-composition').value;
-    const note = document.getElementById('p-note').value;
-
-    const isPerishable = document.getElementById('p-perishable').checked;
-    const isFrozen = document.getElementById('p-frozen').checked;
-    const isCooked = document.getElementById('p-cooked').checked;
 
     let finalDays = inputDays.value;
-    if (isCooked && !finalDays && !exactDate) {
-        finalDays = '3';
-    }
-
     const validationResult = validateProductData(name, count, finalDays, exactDate);
     if (!validationResult.valid) { showToast(validationResult.error, 'error'); return; }
 
     btnAdd.disabled = true;
-    btnAdd.textContent = '⏳ Сохранение...';
+    btnAdd.textContent = '⏳ ...';
 
     try {
-        if (editingBatchId) {
-            const msInDay = 24 * 60 * 60 * 1000;
-            const expirationDate = exactDate ? new Date(exactDate).getTime() : Date.now() + (finalDays * msInDay);
-            await fridge.updateFullBatch(editingBatchId, {
-                name, category, count: parseFloat(count), unit,
-                expirationDate, isPerishable, isFrozen, isCooked,
-                price: parseFloat(price) || 0, composition, note
-            });
-            editingBatchId = null;
-            btnAdd.classList.replace('bg-blue-600', 'bg-green-500');
-            btnAdd.classList.replace('hover:bg-blue-700', 'hover:bg-green-600');
-            showToast('Изменения сохранены в облако', 'success');
-        } else {
-            await fridge.addBatch(name, category, count, unit, finalDays, exactDate, isPerishable, isFrozen, isCooked, price, composition, note);
-            showToast('Продукт успешно добавлен', 'success');
-        }
+        await fridge.addBatch(name, category, count, unit, finalDays, exactDate, false, false, false, 0, '', '');
+        showToast('Добавлено', 'success');
 
-        inputName.value = '';
-        inputCount.value = '';
-        inputDays.value = '';
-        inputDate.value = '';
-        document.getElementById('p-price').value = '';
-        document.getElementById('p-composition').value = '';
-        document.getElementById('p-note').value = '';
-        inputUnit.value = 'шт';
-        inputCount.step = '1'; inputCount.placeholder = '1, 2...';
-        document.getElementById('p-perishable').checked = false;
-        document.getElementById('p-frozen').checked = false;
-        document.getElementById('p-cooked').checked = false;
-
-        advancedSettings.classList.add('hidden');
-        btnToggleAdvanced.textContent = '⚙️ Расширенные настройки ▾';
-
+        inputName.value = ''; inputCount.value = ''; inputDays.value = ''; inputDate.value = '';
         updateUI();
     } catch (error) {
-        showToast('❌ Ошибка сохранения', 'error');
-        console.error(error);
+        showToast('Ошибка', 'error');
     } finally {
         btnAdd.disabled = false;
-        btnAdd.textContent = '➕ В холодильник';
+        btnAdd.textContent = '➕';
     }
 });
-
-const v2Stubs = document.querySelectorAll('.v2-stub');
-v2Stubs.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        showToast('🚀 Функция будет доступна в Версии 2.0!', 'info');
-    });
-});
-
-btnExport.addEventListener('click', () => { exportToCSV(fridge.batches); });
-btnImport.addEventListener('click', () => { inputCsv.click(); });
-inputCsv.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) { importFromCSV(file, fridge, updateUI); inputCsv.value = ''; }
-});
-
-async function handleAiRequest(mode) {
-    const apiKey = apiKeyInput.value.trim() || sessionStorage.getItem('gemini_api_key');
-    if (!apiKey) { showToast('Введите ваш API-ключ Gemini в Панели Админа.', 'error'); return; }
-
-    sessionStorage.setItem('gemini_api_key', apiKey);
-
-    const responseBox = document.getElementById('ai-response-box');
-    const btnRescue = document.getElementById('btn-ask-ai-rescue');
-    const btnAll = document.getElementById('btn-ask-ai-all');
-
-    responseBox.classList.remove('hidden');
-    responseBox.innerHTML = '<i>⏳ Нейросеть составляет меню из 5-7 рецептов... Пожалуйста, подождите.</i>';
-    btnRescue.disabled = true;
-    btnAll.disabled = true;
-
-    const recipe = await askGeminiRecipe(apiKey, fridge.getProcessedBatches(), mode);
-
-    let formattedRecipe = recipe
-        .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
-        .replace(/\n/g, '<br>')
-        .replace(/---/g, '<hr class="my-4 border-indigo-100">');
-
-    responseBox.innerHTML = formattedRecipe;
-    btnRescue.disabled = false;
-    btnAll.disabled = false;
-}
-
-document.getElementById('btn-ask-ai-rescue').addEventListener('click', () => handleAiRequest('rescue'));
-document.getElementById('btn-ask-ai-all').addEventListener('click', () => handleAiRequest('all'));
-
-const modalInstruction = document.getElementById('instruction-modal');
-const btnInstruction = document.getElementById('btn-instruction');
-const btnCloseInstruction = document.getElementById('btn-close-instruction');
-const btnUnderstand = document.getElementById('btn-understand');
-
-function openInstruction() { modalInstruction.classList.remove('hidden'); }
-function closeInstruction() {
-    modalInstruction.classList.add('hidden');
-    localStorage.setItem('fridge_instruction_seen', 'true');
-}
-
-btnInstruction.addEventListener('click', openInstruction);
-btnCloseInstruction.addEventListener('click', closeInstruction);
-btnUnderstand.addEventListener('click', closeInstruction);
-
-if (!localStorage.getItem('fridge_instruction_seen')) {
-    openInstruction();
-}
 
 async function initApp() {
     try {
-        showToast('⏳ Синхронизация с облаком...', 'info');
         await fridge.fetchBatchesFromCloud();
         await analytics.loadFromCloud();
         updateUI();
-        showToast('✅ Успешно подключено!', 'success');
     } catch (error) {
-        showToast('❌ Ошибка загрузки базы данных. Проверьте интернет.', 'error');
-        console.error("Сбой запуска:", error);
         updateUI();
     }
 }
-
 initApp();

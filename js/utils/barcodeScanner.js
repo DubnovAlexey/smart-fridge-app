@@ -1,96 +1,98 @@
 // ==============================================================================
 // ФАЙЛ: js/utils/barcodeScanner.js
-// НАЗНАЧЕНИЕ: Интеграция камеры мобильного телефона и базы Open Food Facts.
+// НАЗНАЧЕНИЕ: Сканнер с улучшенной рамкой и визуальной зеленой вспышкой
 // ==============================================================================
 
 import { showToast } from './helpers.js';
+import { t } from './translations.js'; // Подключили переводы
 
-let html5QrcodeScanner = null;
+let html5QrCode = null;
+let isProcessing = false;
 
-// Функция отправки запроса в мировую базу продуктов
 async function fetchProductByBarcode(barcode) {
     try {
         const url = `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`;
         const response = await fetch(url);
         const data = await response.json();
 
-        // Если продукт найден в базе (статус 1)
         if (data.status === 1 && data.product) {
             const product = data.product;
-
-            // Пытаемся найти русское название, если нет — берем международное
             const name = product.product_name_ru || product.product_name || '';
-
-            // Если названия вообще нет, возвращаем null
             if (!name) return null;
-
-            // Добавляем бренд к названию для точности (например, "Простоквашино Кефир")
-            const brand = product.brands ? product.brands.split(',')[0] : '';
-            let fullName = name;
-
-            if (brand && !name.toLowerCase().includes(brand.toLowerCase())) {
-                fullName = `${brand} ${name}`;
-            }
-
-            return fullName.trim();
+            return name.trim();
         }
-        return null; // В базе такого штрих-кода нет
+        return null;
     } catch (error) {
-        console.error("Ошибка при запросе к базе штрих-кодов:", error);
         return null;
     }
 }
 
-// Экспортируем функцию инициализации сканера
 export function initScanner(onSuccessCallback) {
     const scannerModal = document.getElementById('scanner-modal');
+    const scannerContainer = document.getElementById('scanner-container');
+    const header = document.getElementById('scanner-header');
     const btnCloseScanner = document.getElementById('btn-close-scanner');
+    const laser = document.getElementById('scanner-laser');
+    const statusText = document.getElementById('scanner-status');
 
     function startScanner() {
-        // Открываем модальное окно на весь экран
+        isProcessing = false;
         scannerModal.classList.remove('hidden');
 
-        if (html5QrcodeScanner) {
-            html5QrcodeScanner.clear();
-        }
+        // Сброс визуальных стилей в начальное состояние
+        scannerContainer.classList.remove('scan-success-flash');
+        header.classList.replace('bg-green-600', 'bg-indigo-600');
+        laser.classList.remove('hidden');
 
-        // Настройки камеры (прямоугольное окошко как раз под штрих-коды)
-        html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader",
-            { fps: 10, qrbox: { width: 250, height: 150 } },
-            false
-        );
+        // Перевод стартового текста
+        statusText.innerHTML = t('scan_wait');
+        statusText.className = 'p-6 text-center text-sm font-semibold bg-slate-50 text-slate-600 transition-colors';
 
-        // Запуск распознавания
-        html5QrcodeScanner.render(async (decodedText) => {
-            // Как только поймали код - сразу выключаем камеру и закрываем окно
-            html5QrcodeScanner.clear();
-            scannerModal.classList.add('hidden');
+        html5QrCode = new Html5Qrcode("reader");
 
-            showToast(`Штрих-код ${decodedText} считан! Ищу в базе...`, 'info');
+        html5QrCode.start(
+            { facingMode: "environment" },
+            // Увеличили рамку, чтобы мелкие штрихкоды вроде Orbit ловились проще
+            { fps: 10, qrbox: { width: 300, height: 200 } },
+            async (decodedText) => {
+                if (isProcessing) return;
+                isProcessing = true;
 
-            const productName = await fetchProductByBarcode(decodedText);
+                // === ЗЕЛЕНАЯ ВСПЫШКА УСПЕХА ===
+                laser.classList.add('hidden');
+                scannerContainer.classList.add('scan-success-flash'); // Рамка окна зеленеет
+                header.classList.replace('bg-indigo-600', 'bg-green-600'); // Шапка зеленеет
 
-            if (productName) {
-                showToast(`Найдено: ${productName}`, 'success');
-                onSuccessCallback(productName);
-            } else {
-                showToast(`Продукт не найден в базе. Введите название вручную.`, 'error');
-                // Передаем пустую строку, чтобы программа просто перевела курсор на поле ввода
-                onSuccessCallback('');
-            }
-        }, (errorMessage) => {
-            // Библиотека постоянно генерирует ошибки, пока ищет фокус. Мы их просто игнорируем.
+                statusText.innerHTML = `✅ ${t('scan_code')} <b>${decodedText}</b>!<br><span class="text-xs">⏳ ${t('scan_search')}</span>`;
+                statusText.classList.replace('text-slate-600', 'text-green-600');
+                statusText.classList.replace('bg-slate-50', 'bg-green-50');
+
+                const productName = await fetchProductByBarcode(decodedText);
+
+                await stopScanner();
+
+                if (productName) {
+                    showToast(`Найдено: ${productName}`, 'success');
+                    onSuccessCallback(productName);
+                } else {
+                    showToast(`Не найдено.`, 'error');
+                    onSuccessCallback('');
+                }
+            },
+            (errorMessage) => { }
+        ).catch((err) => {
+            stopScanner();
+            showToast('❌ Ошибка камеры.', 'error');
         });
     }
 
-    // Обработчик закрытия окна (крестик)
-    btnCloseScanner.addEventListener('click', () => {
-        if (html5QrcodeScanner) {
-            html5QrcodeScanner.clear(); // Выключаем камеру
+    async function stopScanner() {
+        if (html5QrCode && html5QrCode.isScanning) {
+            try { await html5QrCode.stop(); } catch (e) { }
         }
         scannerModal.classList.add('hidden');
-    });
+    }
 
+    btnCloseScanner.addEventListener('click', stopScanner);
     return startScanner;
 }
