@@ -1,11 +1,7 @@
 // ==============================================================================
 // ФАЙЛ: js/app.js
 // НАЗНАЧЕНИЕ: Главный Контроллер (Controller). Управляет логикой и связью UI с Firebase.
-//
-// ЧТО ДОБАВЛЕНО В V 2.0 (Этап 2):
-// 1. Управление полем "Состав" (p-composition) и галочкой "Оценка семьи" (p-cooked)
-// 2. Логика модального окна рейтинга: выбор звезд, сохранение отзыва в облако.
-// 3. Автоматическая подстановка 3 дней для готовых блюд, если поле срока пустое.
+// ЧТО ИЗМЕНЕНО: Добавлен скрипт для открытия/закрытия "Расширенных настроек".
 // ==============================================================================
 
 import { FridgeModel } from './models/Fridge.js';
@@ -100,6 +96,21 @@ chkGuestWaste.addEventListener('change', (e) => { PERMISSIONS.guest.canWaste = e
 chkChildTake.addEventListener('change', (e) => { PERMISSIONS.child.canTake = e.target.checked; updateUI(); });
 
 // ==============================================================================
+// НОВОЕ: ЛОГИКА РАСШИРЕННЫХ НАСТРОЕК (UX)
+// ==============================================================================
+const btnToggleAdvanced = document.getElementById('btn-toggle-advanced');
+const advancedSettings = document.getElementById('advanced-settings');
+
+btnToggleAdvanced.addEventListener('click', () => {
+    advancedSettings.classList.toggle('hidden');
+    if (advancedSettings.classList.contains('hidden')) {
+        btnToggleAdvanced.textContent = '⚙️ Расширенные настройки ▾';
+    } else {
+        btnToggleAdvanced.textContent = '⚙️ Скрыть настройки ▴';
+    }
+});
+
+// ==============================================================================
 // ЛОГИКА РЕЙТИНГА (ЗВЕЗДОЧКИ)
 // ==============================================================================
 const ratingModal = document.getElementById('rating-modal');
@@ -159,8 +170,6 @@ btnSubmitRating.addEventListener('click', async () => {
 
         const batch = currentRatingBatch;
         closeRatingModal();
-
-        // После оценки запускаем стандартный процесс "Взять продукт"
         promptAndConsume(batch);
 
     } catch(error) {
@@ -171,7 +180,6 @@ btnSubmitRating.addEventListener('click', async () => {
     }
 });
 
-// Вынесли логику потребления в отдельную функцию, чтобы вызывать ее и напрямую, и после оценки
 async function promptAndConsume(batch) {
     const amountStr = prompt(`Сколько "${batch.unit}" взять? (Доступно: ${batch.count})`, "1");
     if (amountStr !== null) {
@@ -193,13 +201,10 @@ async function promptAndConsume(batch) {
             }
         } else { showToast('Введите корректное число больше нуля.', 'error'); }
     } else {
-        updateUI(); // Обновляем UI, если нажали "Отмена", чтобы отобразились сохраненные звезды
+        updateUI();
     }
 }
 
-// ==============================================================================
-// ОБРАБОТЧИК КНОПОК НА КАРТОЧКАХ
-// ==============================================================================
 async function handleProductAction(event) {
     const btn = event.target.closest('button');
     if (!btn) return;
@@ -227,6 +232,10 @@ async function handleProductAction(event) {
             }
         }
         else if (action === 'edit' && perms.canAdd) {
+            // При редактировании автоматически открываем расширенные настройки
+            advancedSettings.classList.remove('hidden');
+            btnToggleAdvanced.textContent = '⚙️ Скрыть настройки ▴';
+
             document.getElementById('p-name').value = batch.name;
             document.getElementById('p-category').value = batch.category;
             document.getElementById('p-count').value = batch.count;
@@ -273,9 +282,6 @@ inputUnit.addEventListener('change', (event) => {
     }
 });
 
-// ==============================================================================
-// ДОБАВЛЕНИЕ И РЕДАКТИРОВАНИЕ
-// ==============================================================================
 btnAdd.addEventListener('click', async () => {
     if (!PERMISSIONS[currentRole].canAdd) return;
 
@@ -292,7 +298,6 @@ btnAdd.addEventListener('click', async () => {
     const isFrozen = document.getElementById('p-frozen').checked;
     const isCooked = document.getElementById('p-cooked').checked;
 
-    // Умная подстановка 3 дней для готовых блюд, если дни и дата не указаны
     let finalDays = document.getElementById('p-days').value;
     if (isCooked && !finalDays && !exactDate) {
         finalDays = '3';
@@ -335,13 +340,17 @@ btnAdd.addEventListener('click', async () => {
         document.getElementById('p-frozen').checked = false;
         document.getElementById('p-cooked').checked = false;
 
+        // Закрываем расширенные настройки после успешного добавления
+        advancedSettings.classList.add('hidden');
+        btnToggleAdvanced.textContent = '⚙️ Расширенные настройки ▾';
+
         updateUI();
     } catch (error) {
         showToast('❌ Ошибка сохранения', 'error');
         console.error(error);
     } finally {
         btnAdd.disabled = false;
-        btnAdd.textContent = 'На полку';
+        btnAdd.textContent = '➕ В холодильник';
     }
 });
 
@@ -390,9 +399,6 @@ async function handleAiRequest(mode) {
 document.getElementById('btn-ask-ai-rescue').addEventListener('click', () => handleAiRequest('rescue'));
 document.getElementById('btn-ask-ai-all').addEventListener('click', () => handleAiRequest('all'));
 
-// ==============================================================================
-// ЛОГИКА ОБУЧЕНИЯ ПОЛЬЗОВАТЕЛЯ (ONBOARDING)
-// ==============================================================================
 const modalInstruction = document.getElementById('instruction-modal');
 const btnInstruction = document.getElementById('btn-instruction');
 const btnCloseInstruction = document.getElementById('btn-close-instruction');
@@ -412,7 +418,6 @@ if (!localStorage.getItem('fridge_instruction_seen')) {
     openInstruction();
 }
 
-// 1. Асинхронная инициализация приложения (Первый запуск)
 async function initApp() {
     try {
         showToast('⏳ Синхронизация с облаком...', 'info');
