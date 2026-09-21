@@ -1,7 +1,7 @@
 // ==============================================================================
 // ФАЙЛ: js/app.js
 // НАЗНАЧЕНИЕ: Главный Контроллер (Controller). Управляет логикой и связью UI с Firebase.
-// ЧТО ИЗМЕНЕНО: Добавлен импорт и логика работы сканера штрих-кодов.
+// ЧТО ИЗМЕНЕНО: Добавлена интеграция с локальной базой ГОСТов (Авто-сроки).
 // ==============================================================================
 
 import { FridgeModel } from './models/Fridge.js';
@@ -10,7 +10,8 @@ import { renderFridgeContents, renderAnalytics } from './ui/render.js';
 import { validateProductData, showToast } from './utils/helpers.js';
 import { askGeminiRecipe } from './utils/aiChef.js';
 import { exportToCSV, importFromCSV } from './utils/csvManager.js';
-import { initScanner } from './utils/barcodeScanner.js'; // <--- ПОДКЛЮЧИЛИ СКАНЕР
+import { initScanner } from './utils/barcodeScanner.js';
+import { guessExpirationDays } from './utils/gostDB.js'; // <--- БАЗА ГОСТОВ
 
 const PASSWORDS = { admin: 'admin2026', user: '1234' };
 const PERMISSIONS = {
@@ -32,6 +33,8 @@ const rightsPanel = document.getElementById('rights-panel');
 const analyticsPanel = document.getElementById('analytics-panel');
 const addFormPanel = document.getElementById('add-form-panel');
 const btnAdd = document.getElementById('btn-add');
+const inputName = document.getElementById('p-name'); // Поле названия
+const inputCategory = document.getElementById('p-category'); // Поле категории
 const inputUnit = document.getElementById('p-unit');
 const inputCount = document.getElementById('p-count');
 const inputDays = document.getElementById('p-days');
@@ -58,6 +61,37 @@ if (savedName) userNameInput.value = savedName;
 userNameInput.addEventListener('input', (e) => {
     localStorage.setItem('smart_fridge_username', e.target.value.trim());
 });
+
+// ==============================================================================
+// УМНАЯ ПОДСТАНОВКА СРОКОВ ИЗ БАЗЫ ГОСТОВ
+// Срабатывает, когда пользователь закончил писать название и убрал курсор (blur)
+// ==============================================================================
+inputName.addEventListener('blur', () => {
+    const nameVal = inputName.value.trim();
+    const catVal = inputCategory.value;
+
+    // Если имя введено, а поле "Дней" и "Дата" пустые
+    if (nameVal && !inputDays.value && !inputDate.value) {
+        const days = guessExpirationDays(nameVal, catVal);
+        if (days) {
+            inputDays.value = days;
+            // Легкая анимация подсветки, чтобы пользователь заметил магию
+            inputDays.classList.add('bg-green-100', 'transition', 'duration-500');
+            setTimeout(() => inputDays.classList.remove('bg-green-100'), 1500);
+        }
+    }
+});
+
+// Пересчет при смене категории, если название уже написано
+inputCategory.addEventListener('change', () => {
+    const nameVal = inputName.value.trim();
+    const catVal = inputCategory.value;
+    if (nameVal && !inputDate.value) {
+        const days = guessExpirationDays(nameVal, catVal);
+        if (days) inputDays.value = days;
+    }
+});
+// ==============================================================================
 
 function updateUI() {
     const perms = PERMISSIONS[currentRole];
@@ -116,24 +150,24 @@ btnToggleAdvanced.addEventListener('click', () => {
     }
 });
 
-// ==============================================================================
-// ЛОГИКА СКАНЕРА ШТРИХ-КОДОВ (НОВОЕ)
-// ==============================================================================
 const startBarcodeScanner = initScanner((productName) => {
-    const nameInput = document.getElementById('p-name');
     if (productName) {
-        // Если продукт найден, вписываем его название
-        nameInput.value = productName;
+        inputName.value = productName;
+        // После сканирования тоже запускаем автоподбор срока
+        const catVal = inputCategory.value;
+        const days = guessExpirationDays(productName, catVal);
+        if (days && !inputDays.value && !inputDate.value) {
+            inputDays.value = days;
+            inputDays.classList.add('bg-green-100', 'transition', 'duration-500');
+            setTimeout(() => inputDays.classList.remove('bg-green-100'), 1500);
+        }
     }
-    // В любом случае переводим фокус на поле ввода,
-    // чтобы пользователь мог поправить текст или вписать руками
-    nameInput.focus();
+    inputName.focus();
 });
 
 document.getElementById('btn-scan-barcode').addEventListener('click', () => {
     startBarcodeScanner();
 });
-// ==============================================================================
 
 const ratingModal = document.getElementById('rating-modal');
 const btnCloseRating = document.getElementById('btn-close-rating');
@@ -269,18 +303,18 @@ async function handleProductAction(event) {
             advancedSettings.classList.remove('hidden');
             btnToggleAdvanced.textContent = '⚙️ Скрыть настройки ▴';
 
-            document.getElementById('p-name').value = batch.name;
-            document.getElementById('p-category').value = batch.category;
-            document.getElementById('p-count').value = batch.count;
-            document.getElementById('p-unit').value = batch.unit;
+            inputName.value = batch.name;
+            inputCategory.value = batch.category;
+            inputCount.value = batch.count;
+            inputUnit.value = batch.unit;
 
             const expDate = new Date(batch.expirationDate);
             const yyyy = expDate.getFullYear();
             const mm = String(expDate.getMonth() + 1).padStart(2, '0');
             const dd = String(expDate.getDate()).padStart(2, '0');
 
-            document.getElementById('p-date').value = `${yyyy}-${mm}-${dd}`;
-            document.getElementById('p-days').value = '';
+            inputDate.value = `${yyyy}-${mm}-${dd}`;
+            inputDays.value = '';
 
             document.getElementById('p-price').value = batch.price || '';
             document.getElementById('p-composition').value = batch.composition || '';
@@ -318,11 +352,11 @@ inputUnit.addEventListener('change', (event) => {
 btnAdd.addEventListener('click', async () => {
     if (!PERMISSIONS[currentRole].canAdd) return;
 
-    const name = document.getElementById('p-name').value;
-    const category = document.getElementById('p-category').value;
-    const count = document.getElementById('p-count').value;
-    const unit = document.getElementById('p-unit').value;
-    const exactDate = document.getElementById('p-date').value;
+    const name = inputName.value;
+    const category = inputCategory.value;
+    const count = inputCount.value;
+    const unit = inputUnit.value;
+    const exactDate = inputDate.value;
     const price = document.getElementById('p-price').value;
     const composition = document.getElementById('p-composition').value;
     const note = document.getElementById('p-note').value;
@@ -331,7 +365,7 @@ btnAdd.addEventListener('click', async () => {
     const isFrozen = document.getElementById('p-frozen').checked;
     const isCooked = document.getElementById('p-cooked').checked;
 
-    let finalDays = document.getElementById('p-days').value;
+    let finalDays = inputDays.value;
     if (isCooked && !finalDays && !exactDate) {
         finalDays = '3';
     }
@@ -360,14 +394,14 @@ btnAdd.addEventListener('click', async () => {
             showToast('Продукт успешно добавлен', 'success');
         }
 
-        document.getElementById('p-name').value = '';
-        document.getElementById('p-count').value = '';
-        document.getElementById('p-days').value = '';
-        document.getElementById('p-date').value = '';
+        inputName.value = '';
+        inputCount.value = '';
+        inputDays.value = '';
+        inputDate.value = '';
         document.getElementById('p-price').value = '';
         document.getElementById('p-composition').value = '';
         document.getElementById('p-note').value = '';
-        document.getElementById('p-unit').value = 'шт';
+        inputUnit.value = 'шт';
         inputCount.step = '1'; inputCount.placeholder = '1, 2...';
         document.getElementById('p-perishable').checked = false;
         document.getElementById('p-frozen').checked = false;
