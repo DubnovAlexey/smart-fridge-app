@@ -1,8 +1,6 @@
 // ==============================================================================
 // ФАЙЛ: js/app.js
-// НАЗНАЧЕНИЕ: Главный Контроллер (Controller).
-// ЧТО ИСПРАВЛЕНО: Восстановлены потерянные переменные editingBatchId, btnExport,
-// inputCsv, чекбоксы прав и исправлены ошибки промиса для WebStorm.
+// ЧТО ИСПРАВЛЕНО: Интеграция календаря Flatpickr и правильная инициализация языка.
 // ==============================================================================
 
 import { FridgeModel } from './models/Fridge.js';
@@ -27,10 +25,8 @@ const fridge = new FridgeModel();
 const analytics = new AnalyticsModel();
 
 let currentRole = 'user';
-let editingBatchId = null; // ВОССТАНОВЛЕНО: Переменная для режима редактирования
-window.appLang = 'ru';
+let editingBatchId = null;
 
-// DOM-ЭЛЕМЕНТЫ: ОСНОВНЫЕ
 const roleSelector = document.getElementById('role-selector');
 const addFormPanel = document.getElementById('add-form-panel');
 const btnAdd = document.getElementById('btn-add');
@@ -47,7 +43,6 @@ const adminPanel = document.getElementById('admin-panel');
 const rightsPanel = document.getElementById('rights-panel');
 const apiKeyInput = document.getElementById('api-key-input');
 
-// DOM-ЭЛЕМЕНТЫ: ВОССТАНОВЛЕНЫ ПЕРЕМЕННЫЕ CSV И ПРАВ
 const btnExport = document.getElementById('btn-export-csv');
 const btnImport = document.getElementById('btn-import-csv');
 const inputCsv = document.getElementById('input-csv');
@@ -66,8 +61,14 @@ userNameInput.addEventListener('input', (e) => {
     localStorage.setItem('smart_fridge_username', e.target.value.trim());
 });
 
-// ПЕРЕВОДЧИК И ЛОКАЛИЗАЦИЯ КАЛЕНДАРЯ
+// ИНИЦИАЛИЗАЦИЯ ЯЗЫКА (Читаем память браузера)
+window.appLang = localStorage.getItem('appLang') || langSelector.value || 'ru';
+langSelector.value = window.appLang;
+
+let datePicker = null; // Инстанс календаря Flatpickr
+
 function applyTranslations(lang) {
+    localStorage.setItem('appLang', lang); // Запоминаем выбор
     const dict = TRANSLATIONS[lang];
     if (!dict) return;
 
@@ -85,6 +86,15 @@ function applyTranslations(lang) {
         document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
             const key = el.getAttribute('data-i18n-placeholder');
             if (dict[key]) el.placeholder = dict[key];
+        });
+
+        // ПЕРЕСОЗДАЕМ КАЛЕНДАРЬ НА ВЫБРАННОМ ЯЗЫКЕ
+        if (datePicker) {
+            datePicker.destroy();
+        }
+        datePicker = flatpickr("#p-date", {
+            dateFormat: "Y-m-d",
+            locale: lang === 'en' ? 'default' : lang
         });
 
         updateUI();
@@ -137,7 +147,6 @@ roleSelector.addEventListener('change', (event) => {
     updateUI();
 });
 
-// ВОССТАНОВЛЕННЫЕ ОБРАБОТЧИКИ ПРАВ
 if (chkGuestTake) chkGuestTake.addEventListener('change', (e) => { PERMISSIONS.guest.canTake = e.target.checked; updateUI(); });
 if (chkGuestWaste) chkGuestWaste.addEventListener('change', (e) => { PERMISSIONS.guest.canWaste = e.target.checked; updateUI(); });
 if (chkChildTake) chkChildTake.addEventListener('change', (e) => { PERMISSIONS.child.canTake = e.target.checked; updateUI(); });
@@ -148,9 +157,6 @@ btnToggleAdvanced.addEventListener('click', () => {
     advancedSettings.classList.toggle('hidden');
 });
 
-// ==============================================================================
-// ЛОГИКА ОКНА ПРЕВЬЮ СКАНЕРА
-// ==============================================================================
 const previewModal = document.getElementById('scan-preview-modal');
 const previewName = document.getElementById('preview-name');
 const previewBarcode = document.getElementById('preview-barcode');
@@ -213,9 +219,6 @@ document.getElementById('btn-preview-fake').addEventListener('click', () => {
     startBarcodeScanner();
 });
 
-// ==============================================================================
-// ОБРАБОТКА ВСЕХ КНОПОК НА КАРТОЧКЕ (+, -, Изменить, Взять, Списать)
-// ==============================================================================
 async function handleProductAction(event) {
     const btn = event.target.closest('button');
     if (!btn) return;
@@ -269,7 +272,7 @@ async function handleProductAction(event) {
         const mm = String(expDate.getMonth() + 1).padStart(2, '0');
         const dd = String(expDate.getDate()).padStart(2, '0');
 
-        inputDate.value = `${yyyy}-${mm}-${dd}`;
+        if (datePicker) datePicker.setDate(`${yyyy}-${mm}-${dd}`);
         inputDays.value = '';
 
         document.getElementById('p-price').value = batch.price || '';
@@ -279,7 +282,7 @@ async function handleProductAction(event) {
         document.getElementById('p-frozen').checked = batch.isFrozen;
         document.getElementById('p-cooked').checked = batch.isCooked || false;
 
-        editingBatchId = id; // ПЕРЕМЕННАЯ ВОССТАНОВЛЕНА
+        editingBatchId = id;
         btnAdd.textContent = '💾 Сохранить изменения';
         btnAdd.classList.replace('bg-green-500', 'bg-blue-600');
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -318,7 +321,7 @@ btnAdd.addEventListener('click', async () => {
     btnAdd.textContent = '⏳ ...';
 
     try {
-        if (editingBatchId) { // ИСПОЛЬЗУЕТСЯ ВОССТАНОВЛЕННАЯ ПЕРЕМЕННАЯ
+        if (editingBatchId) {
             const msInDay = 24 * 60 * 60 * 1000;
             const expirationDate = exactDate ? new Date(exactDate).getTime() : Date.now() + (finalDays * msInDay);
             await fridge.updateFullBatch(editingBatchId, {
@@ -332,7 +335,8 @@ btnAdd.addEventListener('click', async () => {
             showToast('Добавлено', 'success');
         }
 
-        inputName.value = ''; inputCount.value = ''; inputDays.value = ''; inputDate.value = '';
+        inputName.value = ''; inputCount.value = ''; inputDays.value = '';
+        if (datePicker) datePicker.clear();
         document.getElementById('p-price').value = '';
         document.getElementById('p-composition').value = '';
         document.getElementById('p-note').value = '';
@@ -350,7 +354,6 @@ btnAdd.addEventListener('click', async () => {
     }
 });
 
-// ВОССТАНОВЛЕННЫЕ ОБРАБОТЧИКИ CSV
 if (btnExport) btnExport.addEventListener('click', () => { exportToCSV(fridge.batches); });
 if (btnImport) btnImport.addEventListener('click', () => { inputCsv.click(); });
 if (inputCsv) inputCsv.addEventListener('change', (e) => {
@@ -377,10 +380,9 @@ async function initApp() {
     try {
         await fridge.fetchBatchesFromCloud();
         await analytics.loadFromCloud();
-        updateUI();
+        applyTranslations(window.appLang); // ПРИМЕНЯЕМ ЯЗЫК ПРИ СТАРТЕ!
     } catch (error) {
-        updateUI();
+        applyTranslations(window.appLang);
     }
 }
-// ИСПРАВЛЕНО ДЛЯ WEBSTORM: добавляем обработчик ошибки для промиса
 initApp().catch(console.error);

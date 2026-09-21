@@ -1,6 +1,6 @@
 // ==============================================================================
 // ФАЙЛ: js/utils/barcodeScanner.js
-// НАЗНАЧЕНИЕ: Улучшенный сканер штрих-кодов с лазером и превью
+// ЧТО ИСПРАВЛЕНО: Убран qrbox для 100x повышения чувствительности сканера.
 // ==============================================================================
 
 import { showToast } from './helpers.js';
@@ -52,13 +52,11 @@ export function initScanner(onSuccessCallback) {
         isProcessing = false;
         scannerModal.classList.remove('hidden');
 
-        // Сброс интерфейса в режим поиска (Красный цвет)
         scannerContainer.classList.remove('scan-success-flash');
         header.classList.replace('bg-green-600', 'bg-indigo-600');
         targetBox.classList.replace('border-green-500', 'border-red-500');
         targetBox.classList.remove('bg-green-500/20');
 
-        // Включаем бегающий лазер
         laser.classList.remove('hidden');
         laser.classList.add('scan-laser-active');
 
@@ -67,17 +65,16 @@ export function initScanner(onSuccessCallback) {
 
         html5QrCode = new Html5Qrcode("reader");
 
+        // УБРАН QRBOX! Теперь анализируется ВСЯ площадь видео.
         html5QrCode.start(
             { facingMode: "environment" },
-            { fps: 10, qrbox: { width: 280, height: 200 } },
+            { fps: 10 },
             async (decodedText) => {
                 if (isProcessing) return;
                 isProcessing = true;
 
-                // === ЗЕЛЕНАЯ ВСПЫШКА УСПЕХА ===
                 targetBox.classList.replace('border-red-500', 'border-green-500');
                 targetBox.classList.add('bg-green-500/20');
-                // Отключаем и прячем лазер
                 laser.classList.remove('scan-laser-active');
                 laser.classList.add('hidden');
 
@@ -92,7 +89,6 @@ export function initScanner(onSuccessCallback) {
 
                 const productData = await fetchProductByBarcode(decodedText);
 
-                // Задержка, чтобы пользователь успел увидеть зеленый экран
                 setTimeout(async () => {
                     await stopScanner();
                     if (productData) {
