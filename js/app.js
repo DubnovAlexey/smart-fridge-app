@@ -1,7 +1,13 @@
 // ==============================================================================
 // ФАЙЛ: js/app.js
-// НАЗНАЧЕНИЕ: Главный Контроллер
-// ЧТО ИЗМЕНЕНО: Добавлена логика API-модалки, iOS-баннера и передача языка ИИ.
+// НАЗНАЧЕНИЕ: Главный Контроллер (Мозг приложения).
+//
+// ЧТО ДЕЛАЕТ ЭТОТ ФАЙЛ:
+// 1. Управляет Авторизацией Firebase и правами доступа (Админ/Юзер/Ребенок).
+// 2. Инициализирует мультиязычность и календарь (Flatpickr).
+// 3. Отлавливает клики (добавление, списание, корзина, сканер).
+// 4. Связывает интерфейс (UI) с базой данных (FridgeModel) и аналитикой.
+// 5. Обрабатывает вызовы к нейросети (Gemini AI).
 // ==============================================================================
 
 import { FridgeModel } from './models/Fridge.js';
@@ -17,12 +23,13 @@ import { TRANSLATIONS, t } from './utils/translations.js';
 import { auth } from './firebase.js';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
+// --- БАЗОВЫЕ НАСТРОЙКИ ---
 const PASSWORDS = { admin: 'admin2026', user: '1234' };
 const PERMISSIONS = {
     admin: { canAdd: true, canTake: true, canWaste: true },
     user:  { canAdd: true, canTake: true, canWaste: true },
     guest: { canAdd: true, canTake: false, canWaste: false },
-    child: { canAdd: false, canTake: false, canWaste: false }
+    child: { canAdd: false, canTake: false, canWaste: false } // Ребенок по умолчанию не может ничего
 };
 
 const fridge = new FridgeModel();
@@ -34,6 +41,7 @@ window.appLang = 'ru';
 let datePicker = null;
 let currentAuthEmail = 'Аноним';
 
+// DOM Элементы
 const roleSelector = document.getElementById('role-selector');
 const userNameInput = document.getElementById('user-name-input');
 const apiKeyInput = document.getElementById('api-key-input');
@@ -47,7 +55,7 @@ apiKeyInput.value = localStorage.getItem('gemini_api_key') || '';
 userNameInput.addEventListener('input', (e) => localStorage.setItem('smart_fridge_username', e.target.value.trim()));
 
 // ==========================================
-// 1. АВТОРИЗАЦИЯ FIREBASE
+// БЛОК 1: АВТОРИЗАЦИЯ FIREBASE (Login / Register)
 // ==========================================
 onAuthStateChanged(auth, (user) => {
     if (user) {
@@ -77,6 +85,7 @@ document.getElementById('btn-auth-login')?.addEventListener('click', async (e) =
         await signInWithEmailAndPassword(auth, email, pass);
         showToast('Успешный вход!', 'success');
     } catch (error) {
+        // Если пользователя нет - автоматически регистрируем
         if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-login-credentials') {
             try {
                 await createUserWithEmailAndPassword(auth, email, pass);
@@ -97,6 +106,7 @@ document.getElementById('btn-auth-login')?.addEventListener('click', async (e) =
     }
 });
 
+// Обход авторизации для разработки
 document.getElementById('btn-auth-guest')?.addEventListener('click', () => {
     authModal.classList.add('hidden');
     showToast('Локальный режим активирован', 'info');
@@ -104,16 +114,14 @@ document.getElementById('btn-auth-guest')?.addEventListener('click', () => {
 });
 
 // ==========================================
-// 2. НАСТРОЙКИ API КЛЮЧА
+// БЛОК 2: НАСТРОЙКИ API КЛЮЧА (Сохранение в localStorage)
 // ==========================================
 document.getElementById('btn-open-api')?.addEventListener('click', () => {
     document.getElementById('api-modal').classList.remove('hidden');
 });
-
 document.getElementById('btn-close-api')?.addEventListener('click', () => {
     document.getElementById('api-modal').classList.add('hidden');
 });
-
 document.getElementById('btn-save-api')?.addEventListener('click', () => {
     const val = apiKeyInput.value.trim();
     localStorage.setItem('gemini_api_key', val);
@@ -122,7 +130,8 @@ document.getElementById('btn-save-api')?.addEventListener('click', () => {
 });
 
 // ==========================================
-// 3. IOS PWA БАННЕР
+// БЛОК 3: PWA БАННЕР ДЛЯ APPLE IPHONE
+// Проверяет, открыт ли сайт на iOS, и если не в режиме PWA - показывает инструкцию.
 // ==========================================
 function checkIosBanner() {
     const isIos = () => {
@@ -145,7 +154,7 @@ document.getElementById('btn-close-ios-banner')?.addEventListener('click', () =>
 });
 
 // ==========================================
-// 4. ЛОКАЛИЗАЦИЯ И КАЛЕНДАРЬ
+// БЛОК 4: ЛОКАЛИЗАЦИЯ (Языки) И КАЛЕНДАРЬ
 // ==========================================
 function applyTranslations(lang) {
     localStorage.setItem('appLang', lang);
@@ -157,9 +166,12 @@ function applyTranslations(lang) {
     setTimeout(() => {
         document.body.dir = dict.dir;
         document.documentElement.lang = lang;
+        // Заменяем текст
         document.querySelectorAll('[data-i18n]').forEach(el => el.innerHTML = dict[el.getAttribute('data-i18n')]);
+        // Заменяем плейсхолдеры
         document.querySelectorAll('[data-i18n-placeholder]').forEach(el => el.placeholder = dict[el.getAttribute('data-i18n-placeholder')]);
 
+        // Перезапускаем календарь с правильной локалью
         if (datePicker) datePicker.destroy();
         datePicker = flatpickr("#p-date", { dateFormat: "Y-m-d", locale: lang === 'en' ? 'default' : lang });
 
@@ -173,6 +185,7 @@ document.getElementById('lang-selector').addEventListener('change', (e) => {
     applyTranslations(window.appLang);
 });
 
+// Глобальная функция обновления графического интерфейса
 function updateUI() {
     const perms = PERMISSIONS[currentRole];
     document.getElementById('rights-panel').classList.toggle('hidden', currentRole !== 'admin');
@@ -184,7 +197,7 @@ function updateUI() {
 }
 
 // ==========================================
-// 5. НАСТРОЙКИ И ПРАВА
+// БЛОК 5: РОЛИ (АДМИН/РЕБЕНОК) И УМНЫЕ СРОКИ ГОДНОСТИ
 // ==========================================
 roleSelector.addEventListener('change', (e) => {
     if (e.target.value === 'admin' && prompt('Пароль (admin2026):') !== PASSWORDS.admin) {
@@ -196,6 +209,7 @@ roleSelector.addEventListener('change', (e) => {
     updateUI();
 });
 
+// Назначение прав галочками из панели админа
 ['guest-take', 'guest-waste', 'child-take', 'child-waste'].forEach(id => {
     document.getElementById(`perm-${id}`)?.addEventListener('change', (e) => {
         const [role, action] = id.split('-');
@@ -208,6 +222,7 @@ document.getElementById('btn-toggle-advanced').addEventListener('click', () => {
     document.getElementById('advanced-settings').classList.toggle('hidden');
 });
 
+// Автоподстановка дней годности из ГОСТ базы при потере фокуса с поля названия
 document.getElementById('p-name').addEventListener('blur', () => {
     const nameVal = document.getElementById('p-name').value.trim();
     const catVal = document.getElementById('p-category').value;
@@ -223,7 +238,7 @@ document.getElementById('p-name').addEventListener('blur', () => {
 });
 
 // ==========================================
-// 6. ОКНА: ИНСТРУКЦИЯ И РЕЙТИНГ
+// БЛОК 6: ОКНО ИНСТРУКЦИИ И РЕЙТИНГ БЛЮД СЕМЬИ
 // ==========================================
 const modalInstruction = document.getElementById('instruction-modal');
 if (modalInstruction) {
@@ -249,6 +264,7 @@ function closeRatingModal() {
 
 document.getElementById('btn-close-rating')?.addEventListener('click', closeRatingModal);
 
+// Логика закрашивания звездочек при клике
 ratingStars.forEach(star => {
     star.addEventListener('click', (e) => {
         selectedStars = parseInt(e.target.dataset.val);
@@ -259,6 +275,7 @@ ratingStars.forEach(star => {
     });
 });
 
+// Отправка отзыва
 document.getElementById('btn-submit-rating')?.addEventListener('click', async (e) => {
     if (selectedStars === 0) return showToast('Поставьте оценку от 1 до 5 звезд!', 'error');
     if (!currentRatingBatch) return;
@@ -273,13 +290,13 @@ document.getElementById('btn-submit-rating')?.addEventListener('click', async (e
         showToast('⭐ Отзыв сохранен!', 'success');
         const batch = currentRatingBatch;
         closeRatingModal();
-        promptAndConsume(batch);
+        promptAndConsume(batch); // После оценки предлагаем съесть порцию
     } catch(error) { showToast('❌ Ошибка', 'error'); }
     finally { e.target.disabled = false; e.target.textContent = t('cooked_label') || 'Отправить'; }
 });
 
 // ==========================================
-// 7. СКАНЕР ПРОДУКТОВ
+// БЛОК 7: СКАНЕР ШТРИХ-КОДОВ И ОКНО ПРЕВЬЮ
 // ==========================================
 const previewModal = document.getElementById('scan-preview-modal');
 let scannedProductTemp = null;
@@ -296,13 +313,14 @@ const startBarcodeScanner = initScanner((productData) => {
         const ingBox = document.getElementById('preview-ingredients-box');
         if (productData.ingredients) { document.getElementById('preview-ingredients').textContent = productData.ingredients; ingBox.classList.remove('hidden'); } else { ingBox.classList.add('hidden'); }
 
-        const aiBox = document.getElementById('preview-ai-insights');
+        // Фоновый запрос к ИИ для получения фактов о продукте
         const apiKey = localStorage.getItem('gemini_api_key');
         if (apiKey) {
+            const aiBox = document.getElementById('preview-ai-insights');
             aiBox.classList.remove('hidden');
             aiBox.innerHTML = `<div class="flex items-center gap-2"><span class="animate-spin text-xl">⏳</span> <b>${t('preview_ai_loading')}</b></div>`;
             askGeminiProductInfo(apiKey, productData.name, window.appLang).then(info => aiBox.innerHTML = info).catch(() => aiBox.classList.add('hidden'));
-        } else { aiBox.classList.add('hidden'); }
+        }
 
         previewModal.classList.remove('hidden');
     } else {
@@ -314,6 +332,7 @@ document.getElementById('btn-scan-barcode').addEventListener('click', startBarco
 document.getElementById('btn-preview-next')?.addEventListener('click', () => { previewModal.classList.add('hidden'); startBarcodeScanner(); });
 document.getElementById('btn-preview-fake')?.addEventListener('click', () => { previewModal.classList.add('hidden'); showToast(t('fake_alert'), 'info'); startBarcodeScanner(); });
 
+// Перенос данных из превью в форму добавления (С прокруткой экрана)
 document.getElementById('btn-preview-add')?.addEventListener('click', () => {
     previewModal.classList.add('hidden');
     if (scannedProductTemp) {
@@ -325,6 +344,7 @@ document.getElementById('btn-preview-add')?.addEventListener('click', () => {
         const days = guessExpirationDays(scannedProductTemp.name, document.getElementById('p-category').value);
         if (days) document.getElementById('p-days').value = days;
 
+        // Плавная прокрутка к форме
         const formPanel = document.getElementById('add-form-panel');
         if (formPanel) formPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
         setTimeout(() => { document.getElementById('p-count').focus(); }, 500);
@@ -336,7 +356,7 @@ document.getElementById('btn-preview-cart')?.addEventListener('click', async () 
     if (scannedProductTemp) {
         try {
             await fridge.addCartItem(scannedProductTemp.name, 'other', 1, 'шт');
-            playSound('add');
+            playSound('add'); // Вызов звука
             showToast('🛒 Добавлено в список покупок', 'success');
             updateUI();
         } catch(e) { showToast('Ошибка при добавлении', 'error'); }
@@ -344,7 +364,7 @@ document.getElementById('btn-preview-cart')?.addEventListener('click', async () 
 });
 
 // ==========================================
-// 8. УПРАВЛЕНИЕ: КАРТОЧКИ И ФОРМА
+// БЛОК 8: УПРАВЛЕНИЕ ХОЛОДИЛЬНИКОМ (Списание, Корзина)
 // ==========================================
 async function promptAndConsume(batch) {
     const amountStr = prompt(`Сколько "${batch.unit}" взять? (Доступно: ${batch.count})`, "1");
@@ -360,12 +380,14 @@ async function promptAndConsume(batch) {
     } else { updateUI(); }
 }
 
+// Глобальный перехватчик кликов по кнопкам на карточках продуктов
 async function handleAction(event) {
     const btn = event.target.closest('button');
     if (!btn) return;
     const id = btn.dataset.id;
     const action = btn.dataset.action;
 
+    // Взаимодействие с Корзиной
     if (action === 'cart-remove') { await fridge.removeCartItem(id); playSound('remove'); return updateUI(); }
     if (action === 'cart-buy') {
         const item = fridge.cart.find(c => c.id === id);
@@ -381,6 +403,7 @@ async function handleAction(event) {
         return;
     }
 
+    // Взаимодействие с Полкой Холодильника
     const batch = fridge.getBatchById(id);
     if (!batch) return;
 
@@ -428,6 +451,7 @@ async function handleAction(event) {
 document.getElementById('fridge-shelves').addEventListener('click', handleAction);
 document.getElementById('cart-items-container')?.addEventListener('click', handleAction);
 
+// Отправка формы ручного добавления продукта
 document.getElementById('btn-add').addEventListener('click', async (e) => {
     if (!PERMISSIONS[currentRole].canAdd) return;
 
@@ -461,17 +485,20 @@ document.getElementById('btn-add').addEventListener('click', async (e) => {
 });
 
 // ==========================================
-// 9. ИНТЕГРАЦИИ (CSV И AI CHEF)
+// БЛОК 9: ИНТЕГРАЦИИ (CSV И НЕЙРОСЕТЬ)
 // ==========================================
+
+// Работа с файлами базы (CSV)
 document.getElementById('btn-export-csv')?.addEventListener('click', () => exportToCSV(fridge.batches));
 document.getElementById('btn-import-csv')?.addEventListener('click', () => document.getElementById('input-csv').click());
 document.getElementById('input-csv')?.addEventListener('change', (e) => {
     if (e.target.files[0]) { importFromCSV(e.target.files[0], fridge, updateUI); e.target.value = ''; }
 });
 
+// Выполнение запросов к ИИ-Шефу
 async function executeAiTask(mode) {
     const apiKey = localStorage.getItem('gemini_api_key');
-    if (!apiKey) return showToast('Нажмите на 🔑 в шапке и введите ключ!', 'error');
+    if (!apiKey) return showToast('Нажмите на 🔑 AI-Ключ в шапке!', 'error');
 
     const recipeName = document.getElementById('ai-recipe-input').value.trim();
     if (mode === 'specific' && !recipeName) return showToast('Напишите название блюда!', 'error');
@@ -483,6 +510,7 @@ async function executeAiTask(mode) {
     loaderOverlay.classList.remove('hidden');
 
     try {
+        // Запрос рецепта с передачей текущего языка
         const recipe = await askGeminiRecipe(apiKey, fridge.getProcessedBatches(), mode, recipeName, window.appLang);
         responseBox.innerHTML = formatAiResponse(recipe);
     } catch (error) {
@@ -497,18 +525,21 @@ document.getElementById('btn-ask-ai-rescue')?.addEventListener('click', () => ex
 document.getElementById('btn-ask-ai-all')?.addEventListener('click', () => executeAiTask('all'));
 document.getElementById('btn-ai-recipe')?.addEventListener('click', () => executeAiTask('specific'));
 
+// Снабженец (Сбор списка покупок через ИИ)
 document.getElementById('btn-ai-supplier')?.addEventListener('click', async (e) => {
     const recipeName = document.getElementById('ai-recipe-input').value.trim();
     if (!recipeName) return showToast('Напишите название блюда!', 'error');
 
     const apiKey = localStorage.getItem('gemini_api_key');
-    if (!apiKey) return showToast('Нажмите на 🔑 в шапке и введите ключ!', 'error');
+    if (!apiKey) return showToast('Нажмите на 🔑 AI-Ключ в шапке!', 'error');
 
     loaderOverlay.classList.remove('hidden');
 
     try {
+        // Поиск недостающих ингредиентов
         const missingItems = await askGeminiMissingIngredients(apiKey, recipeName, fridge.getProcessedBatches(), window.appLang);
         if (missingItems && missingItems.length > 0) {
+            // Массовое добавление в корзину
             await Promise.all(missingItems.map(item => fridge.addCartItem(item.name, item.category, item.count, item.unit)));
             playSound('add');
             showToast(`Добавлено ${missingItems.length} позиций в список покупок!`, 'success');
@@ -520,7 +551,7 @@ document.getElementById('btn-ai-supplier')?.addEventListener('click', async (e) 
 });
 
 // ==========================================
-// СТАРТ ПРИЛОЖЕНИЯ
+// БЛОК 10: СТАРТ ПРИЛОЖЕНИЯ
 // ==========================================
 async function initApp() {
     window.appLang = localStorage.getItem('appLang') || document.getElementById('lang-selector').value || 'ru';
@@ -530,13 +561,15 @@ async function initApp() {
         await fridge.fetchCartFromCloud();
         await analytics.loadFromCloud();
         applyTranslations(window.appLang);
-        checkIosBanner();
+        checkIosBanner(); // Проверка на iPhone
     } catch (error) {
+        // Даже если нет сети (offline), интерфейс переведется
         applyTranslations(window.appLang);
         checkIosBanner();
     }
 }
 
+// Если Firebase Auth упал или отключен, запускаем программу принудительно
 if (!window.firebaseAuthInitialized) {
     initApp().catch(console.error);
 }

@@ -1,10 +1,18 @@
 // ==============================================================================
 // ФАЙЛ: js/utils/aiChef.js
-// НАЗНАЧЕНИЕ: Связь с Google Gemini AI (С поддержкой выбора языка и модели)
+// НАЗНАЧЕНИЕ: Коммуникация с API нейросети Google Gemini.
+//
+// ЧТО ДЕЛАЕТ ЭТОТ ФАЙЛ:
+// 1. Формирует текстовые промпты на основе содержимого холодильника.
+// 2. Переводит запросы так, чтобы ИИ отвечал на языке пользователя.
+// 3. Отправляет авторизационный ключ через безопасный заголовок (x-goog-api-key).
+// 4. Заставляет ИИ возвращать строгий JSON формат для Списка покупок.
 // ==============================================================================
 
+// ИСПОЛЬЗУЕМАЯ МОДЕЛЬ (Ваша рабочая модель из домашки)
 const AI_MODEL = 'gemini-3-flash-preview';
 
+// Словарь для перевода названий языков, чтобы ИИ понимал, на каком языке писать ответ
 const LANG_NAMES = {
     ru: 'русском',
     he: 'иврите',
@@ -13,9 +21,12 @@ const LANG_NAMES = {
     es: 'испанском'
 };
 
+// Функция 1: Запрос рецептов из остатков или для спасения продуктов
 export async function askGeminiRecipe(apiKey, batches, mode, specificDish = "", language = 'ru') {
     if (!apiKey) throw new Error("API Key is missing");
     let promptText = "";
+
+    // Формируем список еды из базы
     const foodList = batches.map(b => `${b.name} (${b.count} ${b.unit})`).join(', ');
     const langName = LANG_NAMES[language] || 'русском';
 
@@ -27,12 +38,15 @@ export async function askGeminiRecipe(apiKey, batches, mode, specificDish = "", 
     } else {
         promptText = `В моем холодильнике: ${foodList}. Придумай 3 интересных рецепта из этих продуктов. Отвечай СТРОГО на ${langName} языке. Используй только HTML теги (<b>, <ul>, <li>).`;
     }
+
     return await fetchGeminiText(apiKey, promptText, false);
 }
 
+// Функция 2: Запрос фактов о продукте после сканирования штрих-кода
 export async function askGeminiProductInfo(apiKey, productName, language = 'ru') {
     if (!apiKey) return "";
     const langName = LANG_NAMES[language] || 'русском';
+
     const promptText = `Пользователь отсканировал "${productName}". 
     Ответь СТРОГО на ${langName} языке. Напиши 3 факта в HTML формате:
     <ul class="space-y-1 mt-2">
@@ -40,9 +54,11 @@ export async function askGeminiProductInfo(apiKey, productName, language = 'ru')
       <li><b>Годность:</b> (в среднем)</li>
       <li><b>Идея блюда:</b> (одно применение)</li>
     </ul>`;
+
     return await fetchGeminiText(apiKey, promptText, false);
 }
 
+// Функция 3: ИИ-Снабженец (Сверка рецепта с холодильником и генерация JSON-корзины)
 export async function askGeminiMissingIngredients(apiKey, recipeName, batches, language = 'ru') {
     if (!apiKey) throw new Error("API Key is missing");
 
@@ -58,8 +74,11 @@ export async function askGeminiMissingIngredients(apiKey, recipeName, batches, l
 
     try {
         const response = await fetchGeminiText(apiKey, promptText, true);
+
+        // Очищаем ответ от возможного Markdown (```json ... ```)
         const cleanJsonStr = response.replace(/```json/gi, '').replace(/```/g, '').trim();
         if (!cleanJsonStr) return [];
+
         return JSON.parse(cleanJsonStr);
     } catch (error) {
         console.error("Ошибка парсинга JSON от ИИ:", error);
@@ -67,6 +86,7 @@ export async function askGeminiMissingIngredients(apiKey, recipeName, batches, l
     }
 }
 
+// Функция 4: Базовый сетевой запрос (fetch) к API Google
 async function fetchGeminiText(apiKey, promptText, forceJson = false) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${AI_MODEL}:generateContent`;
 
@@ -74,6 +94,7 @@ async function fetchGeminiText(apiKey, promptText, forceJson = false) {
         contents: [{ parts: [{ text: promptText }] }]
     };
 
+    // Если нужна строгая структура (для Корзины), включаем защиту от Markdown
     if (forceJson) {
         body.generationConfig = { responseMimeType: "application/json" };
     }
@@ -82,7 +103,7 @@ async function fetchGeminiText(apiKey, promptText, forceJson = false) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'x-goog-api-key': apiKey
+            'x-goog-api-key': apiKey // Интегрировано из вашего учебного проекта
         },
         body: JSON.stringify(body)
     });
