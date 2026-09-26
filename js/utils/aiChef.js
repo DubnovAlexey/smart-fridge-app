@@ -4,9 +4,9 @@
 //
 // ЧТО ДЕЛАЕТ ЭТОТ ФАЙЛ:
 // 1. Принимает список продуктов из холодильника и формирует текстовый запрос.
-// 2. Использует рабочую модель "gemini-3-flash-preview".
+// 2. Использует рабочую модель "gemini-3-flash-preview" (утверждено в main).
 // 3. Отправляет язык интерфейса (language), чтобы ответ приходил на нужном языке.
-// 4. Форсирует формат JSON для Снабженца (список покупок).
+// 4. Форсирует формат JSON для Снабженца (список покупок), чтобы код не ломался.
 // ==============================================================================
 
 // ИСПОЛЬЗУЕМАЯ МОДЕЛЬ
@@ -21,7 +21,7 @@ const LANG_NAMES = {
     es: 'испанском'
 };
 
-// --- ФУНКЦИЯ 1: Получение рецептов ---
+// --- ФУНКЦИЯ 1: Получение рецептов (Из всего / Для спасения / Конкретное) ---
 export async function askGeminiRecipe(apiKey, batches, mode, specificDish = "", language = 'ru') {
     if (!apiKey) throw new Error("API Key is missing");
     let promptText = "";
@@ -42,7 +42,7 @@ export async function askGeminiRecipe(apiKey, batches, mode, specificDish = "", 
     return await fetchGeminiText(apiKey, promptText, false);
 }
 
-// --- ФУНКЦИЯ 2: Справка о продукте из сканера ---
+// --- ФУНКЦИЯ 2: Справка о продукте из сканера штрих-кодов ---
 export async function askGeminiProductInfo(apiKey, productName, language = 'ru') {
     if (!apiKey) return "";
     const langName = LANG_NAMES[language] || 'русском';
@@ -58,7 +58,7 @@ export async function askGeminiProductInfo(apiKey, productName, language = 'ru')
     return await fetchGeminiText(apiKey, promptText, false);
 }
 
-// --- ФУНКЦИЯ 3: ИИ-Снабженец (Список покупок) ---
+// --- ФУНКЦИЯ 3: ИИ-Снабженец (Сверка наличия продуктов) ---
 export async function askGeminiMissingIngredients(apiKey, recipeName, batches, language = 'ru') {
     if (!apiKey) throw new Error("API Key is missing");
 
@@ -75,6 +75,7 @@ export async function askGeminiMissingIngredients(apiKey, recipeName, batches, l
     try {
         const response = await fetchGeminiText(apiKey, promptText, true);
 
+        // Очищаем ответ от Markdown, если ИИ всё-таки решил его добавить
         const cleanJsonStr = response.replace(/```json/gi, '').replace(/```/g, '').trim();
         if (!cleanJsonStr) return [];
 

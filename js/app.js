@@ -394,7 +394,7 @@ document.getElementById('btn-preview-cart')?.addEventListener('click', async () 
 });
 
 // ==========================================
-// БЛОК 8: УПРАВЛЕНИЕ: КАРТОЧКИ И ФОРМА
+// БЛОК 8: УПРАВЛЕНИЕ ХОЛОДИЛЬНИКОМ
 // ==========================================
 async function promptAndConsume(batch) {
     const amountStr = prompt(`Сколько "${batch.unit}" взять? (Доступно: ${batch.count})`, "1");

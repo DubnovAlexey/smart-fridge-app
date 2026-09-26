@@ -56,7 +56,9 @@ export const TRANSLATIONS = {
 
         pwa_banner_text: "Скачайте приложение на телефон для быстрого доступа!",
         pwa_install_btn: "📲 Установить",
-        ios_install_guide: "🍎 <b>Apple запрещает прямую установку.</b><br>Нажмите <b>Поделиться</b> (квадрат со стрелочкой ⎋) внизу экрана и выберите <b>«На экран Домой»</b>."
+
+        // ОБНОВЛЕНО: Двойная инструкция для iPhone
+        ios_install_guide: "🍎 <b>Установка на iPhone:</b><br>• <b>В Safari:</b> Поделиться (кнопка внизу экрана) ➔ «На экран Домой».<br>• <b>В Chrome:</b> Поделиться (вверху справа) ➔ «Показать больше» (⬇️) ➔ «На экран Домой» (➕)."
     },
     // --------------------------------------------------------------------------
     // 2. ИВРИТ (RTL)
@@ -97,7 +99,8 @@ export const TRANSLATIONS = {
         btn_understand: "הבנתי!",
         pwa_banner_text: "התקן את האפליקציה בטלפון שלך!",
         pwa_install_btn: "📲 התקן",
-        ios_install_guide: "🍎 <b>Apple חוסמת התקנה ישירה.</b><br>לחץ על כפתור השיתוף בדפדפן (⎋) ובחר <b>'למסך הבית'</b>."
+        // ОБНОВЛЕНО: Двойная инструкция
+        ios_install_guide: "🍎 <b>התקנה באייפון:</b><br>• <b>ב-Safari:</b> שתף (למטה) ➔ 'למסך הבית'.<br>• <b>ב-Chrome:</b> שתף (למעלה) ➔ 'הצג עוד' (⬇️) ➔ 'למסך הבית' (➕)."
     },
     // --------------------------------------------------------------------------
     // 3. АНГЛИЙСКИЙ
@@ -138,10 +141,11 @@ export const TRANSLATIONS = {
         btn_understand: "Got it!",
         pwa_banner_text: "Install the app for quick access!",
         pwa_install_btn: "📲 Install",
-        ios_install_guide: "🍎 <b>Apple blocks direct installation.</b><br>Tap <b>Share</b> (⎋) at the bottom and select <b>'Add to Home Screen'</b>."
+        // ОБНОВЛЕНО: Двойная инструкция
+        ios_install_guide: "🍎 <b>iPhone Install:</b><br>• <b>Safari:</b> Share (bottom) ➔ 'Add to Home Screen'.<br>• <b>Chrome:</b> Share (top right) ➔ 'Show more' (⬇️) ➔ 'Add to Home Screen' (➕)."
     },
     // --------------------------------------------------------------------------
-    // 4. НЕМЕЦКИЙ (Полностью синхронизирован, чтобы не было undefined)
+    // 4. НЕМЕЦКИЙ
     // --------------------------------------------------------------------------
     de: {
         dir: 'ltr', title: "❄️ Kühlschrank", how_to: "ℹ️ Guide",
@@ -153,10 +157,11 @@ export const TRANSLATIONS = {
         step_5: "<div class='mb-3'><b class='text-indigo-600 text-base'>5️⃣ Verwaltung:</b> Rechte verwalten.</div>",
         step_6: "<div class='mb-3'><b class='text-indigo-600 text-base'>6️⃣ Bewertung:</b> Mahlzeiten bewerten.</div>",
         step_7: "<div class='mb-3'><b class='text-indigo-600 text-base'>7️⃣ Statistiken:</b> Finanzen prüfen.</div>",
-        btn_understand: "Verstanden!", pwa_banner_text: "App installieren!", pwa_install_btn: "📲 Installieren", ios_install_guide: "🍎 Teilen ⎋ -> 'Zum Home-Bildschirm'."
+        btn_understand: "Verstanden!", pwa_banner_text: "App installieren!", pwa_install_btn: "📲 Installieren",
+        ios_install_guide: "🍎 <b>iPhone Installation:</b><br>• <b>Safari:</b> Teilen (unten) ➔ 'Zum Home-Bildschirm'.<br>• <b>Chrome:</b> Teilen (oben rechts) ➔ 'Mehr anzeigen' ➔ 'Zum Home-Bildschirm'."
     },
     // --------------------------------------------------------------------------
-    // 5. ИСПАНСКИЙ (Полностью синхронизирован, чтобы не было undefined)
+    // 5. ИСПАНСКИЙ
     // --------------------------------------------------------------------------
     es: {
         dir: 'ltr', title: "❄️ Nevera", how_to: "ℹ️ Guía",
@@ -168,7 +173,8 @@ export const TRANSLATIONS = {
         step_5: "<div class='mb-3'><b class='text-indigo-600 text-base'>5️⃣ Permisos:</b> Gestión.</div>",
         step_6: "<div class='mb-3'><b class='text-indigo-600 text-base'>6️⃣ Valoración:</b> Valorar comidas.</div>",
         step_7: "<div class='mb-3'><b class='text-indigo-600 text-base'>7️⃣ Estadísticas:</b> Ver pérdidas.</div>",
-        btn_understand: "¡Entendido!", pwa_banner_text: "¡Instalar la app!", pwa_install_btn: "📲 Instalar", ios_install_guide: "🍎 Compartir ⎋ -> 'Añadir a inicio'."
+        btn_understand: "¡Entendido!", pwa_banner_text: "¡Instalar la app!", pwa_install_btn: "📲 Instalar",
+        ios_install_guide: "🍎 <b>Instalación en iPhone:</b><br>• <b>Safari:</b> Compartir (abajo) ➔ 'Añadir a inicio'.<br>• <b>Chrome:</b> Compartir (arriba derecha) ➔ 'Mostrar más' ➔ 'Añadir a inicio'."
     }
 };
 
@@ -179,6 +185,6 @@ export function t(key, defaultText = '') {
     if (TRANSLATIONS[lang] && TRANSLATIONS[lang][key] !== undefined) {
         return TRANSLATIONS[lang][key];
     }
-    // Если перевода нет, возвращаем дефолтный текст или сам ключ
+    // Если перевода нет (ошибка в словаре), возвращаем дефолтный текст или сам ключ
     return defaultText || key;
 }

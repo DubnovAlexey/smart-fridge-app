@@ -219,6 +219,7 @@
                 <div><button id="btn-add" class="w-full bg-green-500 hover:bg-green-600 text-white font-black text-lg py-3 px-4 rounded-xl transition shadow-lg" data-i18n="add_btn">➕ В холодильник</button></div>
             </div>
 
+            <!-- Расширенные поля (Цена, Валюта) -->
             <div id="advanced-settings" class="hidden mt-6 pt-6 border-t border-slate-200">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
@@ -288,8 +289,8 @@
     <div class="flex justify-between items-start gap-4">
         <!-- Текст для Android/Desktop -->
         <div id="pwa-text-active" class="hidden text-sm font-medium text-slate-700" data-i18n="pwa_banner_text">Установите приложение на телефон для быстрого доступа!</div>
-        <!-- Текст-инструкция для iOS -->
-        <div id="pwa-text-ios" class="hidden text-sm font-medium text-slate-700" data-i18n="ios_install_guide">🍎 <b>Apple запрещает прямую установку.</b><br>Нажмите <b>Поделиться</b> (⎋) внизу экрана и выберите <b>«На экран Домой»</b>.</div>
+        <!-- Текст-инструкция для iOS (С базовым русским текстом, если JS не сработает) -->
+        <div id="pwa-text-ios" class="hidden text-sm font-medium text-slate-700" data-i18n="ios_install_guide">🍎 <b>Установка на iPhone:</b><br>• <b>В Safari:</b> Поделиться (внизу) ➔ «На экран Домой».<br>• <b>В Chrome:</b> Поделиться (вверху справа) ➔ «Показать больше» (⬇️) ➔ «На экран Домой» (➕).</div>
 
         <button id="btn-close-pwa-banner" class="text-slate-400 hover:text-slate-700 text-3xl font-bold px-2 leading-none">&times;</button>
     </div>
