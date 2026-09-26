@@ -43,20 +43,21 @@
     </div>
 </div>
 
-<!-- ОКНО ЗАГРУЗКИ (КРУТЯЩАЯСЯ СНЕЖИНКА ИИ) -->
+<!-- ОКНО ЗАГРУЗКИ (СНЕЖИНКА ИИ) -->
 <div id="loader-overlay" class="hidden fixed inset-0 bg-blue-900/80 backdrop-blur-md z-[100] flex flex-col justify-center items-center text-white transition-opacity duration-300">
     <div class="text-7xl animate-spin-slow drop-shadow-2xl mb-4">❄️</div>
     <div class="text-xl font-bold tracking-widest uppercase animate-pulse" data-i18n="loading_ai">ИИ ДУМАЕТ...</div>
 </div>
 
-<div class="max-w-6xl mx-auto space-y-6">
+<div class="max-w-6xl mx-auto space-y-6 pb-20">
 
-    <!-- ШАПКА (С КЛЮЧОМ API) -->
+    <!-- ЧИСТАЯ ШАПКА -->
     <header class="bg-white rounded-2xl shadow-sm p-6 flex flex-col lg:flex-row justify-between items-center gap-4 border-t-4 border-blue-500">
         <div>
             <h1 class="text-3xl font-black text-blue-600 flex items-center gap-2" data-i18n="title">❄️ Умный холодильник</h1>
             <div class="flex flex-wrap gap-2 mt-3">
-                <button id="btn-instruction" class="text-xs bg-blue-100 text-blue-700 font-bold px-3 py-1.5 rounded-full shadow hover:shadow-md transition cursor-pointer flex items-center gap-1" data-i18n="how_to">ℹ️ Как пользоваться</button>
+                <button id="btn-instruction" class="text-xs bg-blue-100 text-blue-700 font-bold px-3 py-1.5 rounded-full shadow hover:shadow-md transition cursor-pointer flex items-center gap-1" data-i18n="how_to">ℹ️ Инструкция</button>
+                <button id="btn-open-api" class="text-xs bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-full shadow hover:shadow-md transition cursor-pointer flex items-center gap-1" data-i18n="btn_api_settings">🔑 AI-Ключ</button>
             </div>
         </div>
 
@@ -71,10 +72,6 @@
                 <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl shadow-sm border border-slate-100 w-full sm:w-auto">
                     <span class="text-lg">🧑‍🍳</span>
                     <input type="text" id="user-name-input" data-i18n-placeholder="name_ph" placeholder="Ваше имя" class="bg-transparent border-none outline-none font-bold text-slate-700 w-24 text-sm">
-                </div>
-                <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl shadow-sm border border-slate-100 w-full sm:w-auto">
-                    <span class="text-lg">🔑</span>
-                    <input type="password" id="api-key-input" data-i18n-placeholder="api_key_label" placeholder="API Ключ" class="bg-transparent border-none outline-none font-bold text-slate-700 w-28 text-sm" autocomplete="off">
                 </div>
                 <select id="role-selector" class="bg-white border border-slate-100 shadow-sm rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none cursor-pointer w-full sm:w-auto">
                     <option value="user" data-i18n="role_user">🛡️ Юзер</option><option value="admin" data-i18n="role_admin">🛠️ Админ</option><option value="guest" data-i18n="role_guest">👁️ Гость</option>
@@ -176,12 +173,9 @@
                     <div class="w-1/2">
                         <label for="p-unit" class="block text-xs font-semibold text-slate-500 mb-1 uppercase" data-i18n="unit_label">Ед.</label>
                         <select id="p-unit" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none cursor-pointer focus:ring-2 focus:ring-green-500">
-                            <option value="шт" data-i18n="unit_шт">шт</option>
-                            <option value="кг" data-i18n="unit_кг">кг</option>
-                            <option value="гр" data-i18n="unit_гр">гр</option>
-                            <option value="л" data-i18n="unit_л">л</option>
-                            <option value="мл" data-i18n="unit_мл">мл</option>
-                            <option value="упак" data-i18n="unit_упак">упак</option>
+                            <option value="шт" data-i18n="unit_шт">шт</option><option value="кг" data-i18n="unit_кг">кг</option>
+                            <option value="гр" data-i18n="unit_гр">гр</option><option value="л" data-i18n="unit_л">л</option>
+                            <option value="мл" data-i18n="unit_мл">мл</option><option value="упак" data-i18n="unit_упак">упак</option>
                             <option value="порц" data-i18n="unit_порц">порц</option>
                         </select>
                     </div>
@@ -233,7 +227,42 @@
     </section>
 </div>
 
-<!-- МОДАЛКИ (Сканер, Превью, Инструкция, Оценка) -->
+<!-- ================= МОДАЛЬНЫЕ ОКНА ================= -->
+
+<!-- МОДАЛКА 1: НАСТРОЙКИ API -->
+<div id="api-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[90] flex justify-center items-center p-4 transition-opacity">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 relative">
+        <button id="btn-close-api" class="absolute top-4 right-5 text-slate-400 hover:text-slate-600 transition text-3xl font-bold">&times;</button>
+        <h2 class="text-xl font-black text-slate-800 mb-2 flex items-center gap-2" data-i18n="api_modal_title">🤖 Настройки ИИ</h2>
+        <p class="text-sm text-slate-600 mb-6" data-i18n="api_modal_desc">Для работы нейросети введите ваш Gemini API ключ.</p>
+        <input type="password" id="api-key-input" placeholder="API Ключ..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-500 font-medium mb-4" autocomplete="off">
+        <button id="btn-save-api" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black text-lg py-3 rounded-xl transition shadow-lg" data-i18n="api_modal_btn">💾 Сохранить</button>
+    </div>
+</div>
+
+<!-- МОДАЛКА 2: ИНСТРУКЦИЯ (РАСШИРЕННАЯ) -->
+<div id="instruction-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[80] flex justify-center items-center p-4 transition-opacity">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 relative">
+        <button id="btn-close-instruction" class="absolute top-4 right-5 text-slate-400 hover:text-slate-600 transition text-3xl font-bold">&times;</button>
+        <h2 class="text-2xl font-black text-slate-800 mb-4 flex items-center gap-2" data-i18n="welcome_title">👋 Добро пожаловать!</h2>
+        <div class="space-y-3 text-sm text-slate-600 mb-6 leading-relaxed">
+            <p data-i18n="step_1">🧑‍🍳 <b>Семья:</b> Выберите имя для подписи отзывов.</p>
+            <p data-i18n="step_2">📷 <b>Сканер:</b> Наведите на штрих-код продукта.</p>
+            <p data-i18n="step_3">🤖 <b>AI-Шеф:</b> Внесите API-ключ (🔑) и просите рецепты.</p>
+            <p data-i18n="step_4">🛒 <b>Снабженец:</b> ИИ сам найдет, что докупить.</p>
+            <p data-i18n="step_5">⭐ <b>Рейтинг:</b> Оценивайте домашнюю еду.</p>
+        </div>
+        <button id="btn-understand" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-lg py-3 rounded-xl transition shadow-lg" data-i18n="btn_understand">Всё понятно!</button>
+    </div>
+</div>
+
+<!-- БАННЕР ДЛЯ IPHONE PWA -->
+<div id="ios-install-banner" class="hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 shadow-[0_-5px_15px_rgba(0,0,0,0.1)] z-[5000] flex justify-between items-center gap-4">
+    <div class="text-sm font-medium text-slate-700" data-i18n="ios_install">📱 <b>Установите приложение:</b> нажмите ⎋ Поделиться, затем «На экран Домой».</div>
+    <button id="btn-close-ios-banner" class="text-slate-400 hover:text-slate-700 text-2xl font-bold px-2">&times;</button>
+</div>
+
+<!-- ОСТАЛЬНЫЕ МОДАЛКИ (Сканер, Превью, Оценка) -->
 <div id="scanner-modal" class="hidden fixed inset-0 bg-slate-900/95 backdrop-blur-md z-[60] flex flex-col justify-center items-center p-4 transition-opacity">
     <div id="scanner-container" class="w-full max-w-md bg-white rounded-3xl overflow-hidden flex flex-col relative shadow-2xl transition-all duration-300">
         <div class="p-5 bg-indigo-600 text-white flex justify-between items-center transition-colors duration-300" id="scanner-header"><h3 class="font-bold text-lg flex items-center gap-2" data-i18n="scan_title">📷 Скан штрих-кода</h3><button id="btn-close-scanner" class="text-white hover:text-indigo-200 text-4xl leading-none font-light">&times;</button></div>
@@ -258,20 +287,6 @@
     </div>
 </div>
 
-<div id="instruction-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[80] flex justify-center items-center p-4 transition-opacity">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 relative">
-        <button id="btn-close-instruction" class="absolute top-4 right-5 text-slate-400 hover:text-slate-600 transition text-3xl font-bold">&times;</button>
-        <h2 class="text-2xl font-black text-slate-800 mb-4 flex items-center gap-2" data-i18n="welcome_title">👋 Добро пожаловать!</h2>
-        <div class="space-y-3 text-sm text-slate-600 mb-6">
-            <p data-i18n="step_1"><b>1. Семья:</b> Укажите свое имя и API-ключ в шапке.</p>
-            <p data-i18n="step_2"><b>2. Сканер:</b> Попробуйте отсканировать штрих-код продукта.</p>
-            <p data-i18n="step_3"><b>3. AI-Шеф:</b> Не знаете, что приготовить? Нажмите "Из всего, что есть", и нейросеть составит меню.</p>
-            <p data-i18n="step_4"><b>4. Звездочки:</b> После съедания блюда программа попросит поставить ему оценку.</p>
-        </div>
-        <button id="btn-understand" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-lg py-3 rounded-xl transition shadow-lg" data-i18n="btn_understand">Всё понятно!</button>
-    </div>
-</div>
-
 <div id="rating-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex justify-center items-center p-4 transition-opacity">
     <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 relative text-center">
         <button id="btn-close-rating" class="absolute top-4 right-5 text-slate-400 hover:text-slate-600 transition text-3xl font-bold">&times;</button>
@@ -287,6 +302,7 @@
 
 <div id="toast-container" class="fixed bottom-4 right-4 z-[9999] flex flex-col gap-3 pointer-events-none"></div>
 
+<!-- Регистрация Service Worker -->
 <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>console.log("Локальный запуск")));
