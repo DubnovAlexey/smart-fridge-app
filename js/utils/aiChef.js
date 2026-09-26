@@ -3,7 +3,7 @@
 // НАЗНАЧЕНИЕ: Связь с Google Gemini AI
 // ==============================================================================
 
-const AI_MODEL = 'gemini-1.5-flash';
+const AI_MODEL = 'gemini-3-flash-preview';
 
 export async function askGeminiRecipe(apiKey, batches, mode, specificDish = "") {
     if (!apiKey) throw new Error("API Key is missing");
