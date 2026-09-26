@@ -1,13 +1,11 @@
 // ==============================================================================
 // ФАЙЛ: js/firebase.js
-// НАЗНАЧЕНИЕ: Инициализация облачной базы данных Firebase
+// НАЗНАЧЕНИЕ: Инициализация БД Firestore и системы Идентификации (Auth)
 // ==============================================================================
-
-// Подключаем ядро Firebase и модуль базы данных (Firestore) напрямую с серверов Google
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
-// Уникальный конфигурационный ключ вашего проекта
 const firebaseConfig = {
     apiKey: "AIzaSyC3t2zb4pl721MXAcLgHG5Kna00m8eDtAI",
     authDomain: "smart-fridge-v2.firebaseapp.com",
@@ -17,11 +15,8 @@ const firebaseConfig = {
     appId: "1:814625416001:web:d440c783760fd6d92037c0"
 };
 
-// Инициализируем приложение
 const app = initializeApp(firebaseConfig);
-
-// Активируем базу данных Firestore
 const db = getFirestore(app);
+const auth = getAuth(app);
 
-// Экспортируем переменную db, чтобы другие файлы (например, Fridge.js) могли сохранять туда продукты
-export { db };
+export { db, auth };

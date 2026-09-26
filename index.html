@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Умный холодильник 2.0</title>
+
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>❄️</text></svg>">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -24,13 +29,28 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans p-4 md:p-8 relative transition-all duration-300">
 
+<!-- ЭКРАН АВТОРИЗАЦИИ -->
+<div id="auth-modal" class="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-[200] flex flex-col justify-center items-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 relative">
+        <h2 class="text-3xl font-black text-indigo-600 mb-6 flex justify-center items-center gap-2">❄️ <span data-i18n="auth_title">Вход в систему</span></h2>
+        <div class="space-y-4">
+            <input type="email" id="auth-email" data-i18n-placeholder="auth_email" placeholder="Email" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+            <input type="password" id="auth-pass" data-i18n-placeholder="auth_pass" placeholder="Пароль" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+            <button id="btn-auth-login" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black text-lg py-3 rounded-xl transition shadow-lg mt-2" data-i18n="auth_login">Войти / Регистрация</button>
+            <div class="relative flex items-center py-2"><div class="flex-grow border-t border-slate-200"></div><span class="flex-shrink-0 mx-4 text-slate-400 text-xs uppercase" data-i18n="or">ИЛИ</span><div class="flex-grow border-t border-slate-200"></div></div>
+            <button id="btn-auth-guest" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition" data-i18n="auth_guest">Продолжить локально</button>
+        </div>
+    </div>
+</div>
+
 <div id="loader-overlay" class="hidden fixed inset-0 bg-blue-900/80 backdrop-blur-md z-[100] flex flex-col justify-center items-center text-white transition-opacity duration-300">
     <div class="text-7xl animate-spin-slow drop-shadow-2xl mb-4">❄️</div>
-    <div class="text-xl font-bold tracking-widest uppercase animate-pulse">↻</div>
+    <div class="text-xl font-bold tracking-widest uppercase animate-pulse">ИИ ДУМАЕТ...</div>
 </div>
 
 <div class="max-w-6xl mx-auto space-y-6">
 
+    <!-- ШАПКА: ТЕПЕРЬ КЛЮЧ API НАХОДИТСЯ ЗДЕСЬ (ДЛЯ ВСЕХ) -->
     <header class="bg-white rounded-2xl shadow-sm p-6 flex flex-col lg:flex-row justify-between items-center gap-4 border-t-4 border-blue-500">
         <div>
             <h1 class="text-3xl font-black text-blue-600 flex items-center gap-2" data-i18n="title">❄️ Умный холодильник</h1>
@@ -43,91 +63,95 @@
             <div class="flex items-center bg-slate-50 p-2 rounded-2xl border border-slate-200">
                 <span class="text-lg pl-2">🌍</span>
                 <select id="lang-selector" class="bg-transparent border-none text-sm font-bold text-slate-700 outline-none cursor-pointer px-2">
-                    <option value="ru">Русский</option>
-                    <option value="he">עברית</option>
-                    <option value="en">English</option>
-                    <option value="de">Deutsch</option>
-                    <option value="es">Español</option>
+                    <option value="ru">Русский</option><option value="he">עברית</option><option value="en">English</option><option value="de">Deutsch</option><option value="es">Español</option>
                 </select>
             </div>
 
-            <div class="flex items-center gap-2 bg-slate-50 p-2 rounded-2xl border border-slate-200">
+            <div class="flex flex-wrap items-center gap-2 bg-slate-50 p-2 rounded-2xl border border-slate-200 justify-center">
+                <!-- ИМЯ -->
                 <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl shadow-sm border border-slate-100 w-full sm:w-auto">
                     <span class="text-lg">🧑‍🍳</span>
-                    <input type="text" id="user-name-input" data-i18n-placeholder="name_ph" placeholder="Ваше имя" class="bg-transparent border-none outline-none font-bold text-slate-700 w-24 md:w-32 text-sm">
+                    <input type="text" id="user-name-input" data-i18n-placeholder="name_ph" placeholder="Ваше имя" class="bg-transparent border-none outline-none font-bold text-slate-700 w-24 text-sm">
                 </div>
-
+                <!-- API КЛЮЧ (Скрыт как пароль) -->
+                <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl shadow-sm border border-slate-100 w-full sm:w-auto">
+                    <span class="text-lg">🔑</span>
+                    <input type="password" id="api-key-input" data-i18n-placeholder="api_key_label" placeholder="API Ключ" class="bg-transparent border-none outline-none font-bold text-slate-700 w-28 text-sm" autocomplete="off">
+                </div>
+                <!-- РОЛЬ -->
                 <select id="role-selector" class="bg-white border border-slate-100 shadow-sm rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none cursor-pointer w-full sm:w-auto">
-                    <option value="user" data-i18n="role_user">🛡️ Юзер</option>
-                    <option value="admin" data-i18n="role_admin">🛠️ Админ</option>
-                    <option value="guest" data-i18n="role_guest">👁️ Гость</option>
+                    <option value="user" data-i18n="role_user">🛡️ Юзер</option><option value="admin" data-i18n="role_admin">🛠️ Админ</option><option value="guest" data-i18n="role_guest">👁️ Гость</option>
                 </select>
             </div>
         </div>
     </header>
 
-    <section id="admin-panel" class="hidden bg-slate-800 text-white rounded-2xl p-6 shadow-sm">
-        <h2 class="text-xl font-bold mb-4 flex items-center gap-2" data-i18n="admin_panel_title">🛠️ Системные настройки (Admin)</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-                <label for="api-key-input" class="block text-xs text-slate-400 mb-1" data-i18n="api_key_label">API-ключ Gemini (AI)</label>
-                <input type="text" id="api-key-input" autocomplete="off" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 text-sm outline-none font-mono">
-            </div>
-        </div>
-    </section>
-
+    <!-- ПРАВА (Только для Админа) -->
     <section id="rights-panel" class="hidden bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
         <h2 class="text-lg font-bold text-slate-700 mb-4" data-i18n="rights_title">⚙️ Делегирование прав</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
                 <h3 class="font-semibold text-slate-700 mb-2" data-i18n="guest_rights">👤 Права Гостей</h3>
-                <label class="flex items-center gap-2 text-sm text-slate-600 mb-2 cursor-pointer">
-                    <input type="checkbox" id="perm-guest-take" class="w-4 h-4 rounded text-blue-600"> <span data-i18n="allow_take">Разрешить брать</span>
-                </label>
-                <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                    <input type="checkbox" id="perm-guest-waste" class="w-4 h-4 rounded text-blue-600"> <span data-i18n="allow_waste">Разрешить списывать</span>
-                </label>
+                <label class="flex items-center gap-2 text-sm text-slate-600 mb-2 cursor-pointer"><input type="checkbox" id="perm-guest-take" class="w-4 h-4 rounded text-blue-600"> <span data-i18n="allow_take">Разрешить брать</span></label>
+                <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer"><input type="checkbox" id="perm-guest-waste" class="w-4 h-4 rounded text-blue-600"> <span data-i18n="allow_waste">Разрешить списывать</span></label>
             </div>
             <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
                 <h3 class="font-semibold text-slate-700 mb-2" data-i18n="child_rights">🧒 Права Детей</h3>
-                <label class="flex items-center gap-2 text-sm text-slate-600 mb-2 cursor-pointer">
-                    <input type="checkbox" id="perm-child-take" class="w-4 h-4 rounded text-blue-600"> <span data-i18n="allow_take">Разрешить брать</span>
-                </label>
+                <label class="flex items-center gap-2 text-sm text-slate-600 mb-2 cursor-pointer"><input type="checkbox" id="perm-child-take" class="w-4 h-4 rounded text-blue-600"> <span data-i18n="allow_take">Разрешить брать</span></label>
+                <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer"><input type="checkbox" id="perm-child-waste" class="w-4 h-4 rounded text-blue-600"> <span data-i18n="allow_waste">Разрешить списывать</span></label>
             </div>
         </div>
     </section>
 
+    <!-- СТАТИСТИКА И CSV -->
     <section id="analytics-panel" class="bg-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
         <div class="flex-1">
-            <div class="flex items-center gap-4 mb-2">
-                <h2 class="text-lg font-bold text-slate-700" data-i18n="stats_title">📊 Общая статистика</h2>
-            </div>
+            <div class="flex items-center gap-4 mb-2"><h2 class="text-lg font-bold text-slate-700" data-i18n="stats_title">📊 Общая статистика</h2></div>
             <div class="flex flex-wrap gap-6 text-sm">
                 <div class="text-green-600 font-semibold"><span data-i18n="consumed">✅ Съедено:</span> <span id="stat-consumed">0</span></div>
                 <div class="text-red-500 font-semibold"><span data-i18n="wasted">🗑 Списано:</span> <span id="stat-wasted">0</span></div>
                 <div class="text-slate-500 font-semibold"><span data-i18n="lost">💸 Потери:</span> <span id="stat-money">0</span> ₽</div>
             </div>
         </div>
-        <div class="flex gap-3">
-            <button id="btn-export-csv" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2 rounded-lg transition text-sm">📥 CSV</button>
+        <div class="flex flex-wrap gap-3">
+            <button id="btn-export-csv" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl transition text-sm flex items-center gap-2" data-i18n="btn_export">📥 Экспорт</button>
+            <button id="btn-import-csv" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-bold px-4 py-2 rounded-xl transition text-sm flex items-center gap-2" data-i18n="btn_import">📤 Импорт</button>
             <input type="file" id="input-csv" accept=".csv" class="hidden">
         </div>
     </section>
 
+    <!-- AI CHEF -->
     <section id="ai-chef-panel" class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 shadow-sm">
-        <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-indigo-100/50 pb-4 mb-4">
             <div>
                 <h2 class="text-xl font-bold text-blue-900" data-i18n="ai_title">🤖 AI-Шеф-повар</h2>
                 <p class="text-sm text-blue-700 mt-1" data-i18n="ai_desc">Идеи рецептов из ваших запасов.</p>
             </div>
-            <div class="flex gap-2">
-                <button id="btn-ask-ai-rescue" class="bg-red-500 hover:bg-red-600 text-white font-bold px-4 py-2 rounded-xl transition shadow-md text-sm" data-i18n="rescue">🚨 Спасти продукты</button>
-                <button id="btn-ask-ai-all" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl transition shadow-md text-sm" data-i18n="all_food">🥗 Из всего, что есть</button>
+            <div class="flex flex-wrap gap-2">
+                <button id="btn-ask-ai-rescue" class="bg-red-500 hover:bg-red-600 text-white font-bold px-4 py-2 rounded-xl transition shadow-md text-sm" data-i18n="rescue">🚨 Спасти</button>
+                <button id="btn-ask-ai-all" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl transition shadow-md text-sm" data-i18n="all_food">🥗 Из всего</button>
             </div>
         </div>
-        <div id="ai-response-box" class="hidden mt-4 bg-white rounded-xl p-4 text-sm text-slate-700 border border-blue-50 max-h-96 overflow-y-auto"></div>
+
+        <div class="bg-white/50 p-4 rounded-xl border border-indigo-100/50">
+            <label class="block text-xs font-bold text-indigo-800 mb-2 uppercase tracking-wide" data-i18n="specific_recipe_label">Конкретное блюдо:</label>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <input type="text" id="ai-recipe-input" data-i18n-placeholder="ai_recipe_ph" placeholder="Например: Борщ или Плов" class="flex-1 bg-white border border-indigo-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-indigo-400 font-medium">
+                <button id="btn-ai-recipe" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold px-4 py-3 rounded-xl transition shadow-md text-sm whitespace-nowrap flex items-center justify-center gap-2" data-i18n="btn_ai_recipe">📖 Дай рецепт</button>
+                <button id="btn-ai-supplier" class="bg-indigo-700 hover:bg-indigo-800 text-white font-bold px-4 py-3 rounded-xl transition shadow-md text-sm whitespace-nowrap flex items-center justify-center gap-2" data-i18n="btn_ai_supplier">🛒 Что докупить?</button>
+            </div>
+        </div>
+
+        <div id="ai-response-box" class="hidden mt-4 bg-white rounded-xl p-5 text-sm text-slate-700 border border-blue-100 max-h-96 overflow-y-auto shadow-inner leading-relaxed"></div>
     </section>
 
+    <!-- КОРЗИНА -->
+    <section class="bg-gradient-to-br from-indigo-50 to-white rounded-2xl p-6 shadow-sm border border-indigo-100">
+        <h2 class="text-xl font-black text-indigo-900 mb-4 flex items-center gap-2" data-i18n="cart_title">🛒 Список покупок</h2>
+        <div id="cart-items-container" class="space-y-2 flex flex-col gap-1"></div>
+    </section>
+
+    <!-- ФОРМА ДОБАВЛЕНИЯ -->
     <section id="add-form-panel" class="bg-white rounded-2xl shadow-md border-t-4 border-green-500 overflow-hidden">
         <div class="p-6">
             <div class="flex justify-between items-center mb-6">
@@ -140,17 +164,14 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-5 items-end">
                 <div class="md:col-span-2">
                     <label for="p-name" class="block text-sm font-bold text-slate-700 mb-1" data-i18n="what_add">Что добавляем?</label>
-                    <input type="text" id="p-name" data-i18n-placeholder="what_add_ph" placeholder="Напр. Кефир (или скан)" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-lg outline-none focus:ring-2 focus:ring-green-500 font-medium transition">
+                    <input type="text" id="p-name" data-i18n-placeholder="what_add_ph" placeholder="Напр. Кефир" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-lg outline-none focus:ring-2 focus:ring-green-500 font-medium transition">
                 </div>
                 <div>
                     <label for="p-category" class="block text-xs font-semibold text-slate-500 mb-1 uppercase" data-i18n="cat_label">Категория</label>
                     <select id="p-category" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none cursor-pointer focus:ring-2 focus:ring-green-500">
-                        <option value="dairy" data-i18n="cat_dairy">🥛 Молочка</option>
-                        <option value="meat" data-i18n="cat_meat">🥩 Мясо</option>
-                        <option value="veg" data-i18n="cat_veg">🍎 Овощи/Фрукты</option>
-                        <option value="prepared" data-i18n="cat_prepared">🍲 Готовая еда</option>
-                        <option value="preserves" data-i18n="cat_preserves">🥫 Заготовки</option>
-                        <option value="alcohol" data-i18n="cat_alcohol">🍷 Напитки</option>
+                        <option value="dairy" data-i18n="cat_dairy">🥛 Молочка</option><option value="meat" data-i18n="cat_meat">🥩 Мясо</option>
+                        <option value="veg" data-i18n="cat_veg">🍎 Овощи/Фрукты</option><option value="prepared" data-i18n="cat_prepared">🍲 Готовая еда</option>
+                        <option value="preserves" data-i18n="cat_preserves">🥫 Заготовки</option><option value="alcohol" data-i18n="cat_alcohol">🍷 Напитки</option>
                         <option value="other" data-i18n="cat_other">📦 Прочее</option>
                     </select>
                 </div>
@@ -158,9 +179,10 @@
                     <div class="w-1/2">
                         <label for="p-unit" class="block text-xs font-semibold text-slate-500 mb-1 uppercase" data-i18n="unit_label">Ед.</label>
                         <select id="p-unit" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none cursor-pointer focus:ring-2 focus:ring-green-500">
-                            <option value="шт" data-i18n="unit_шт">шт</option>
-                            <option value="кг" data-i18n="unit_кг">кг</option>
-                            <option value="л" data-i18n="unit_л">л</option>
+                            <option value="шт" data-i18n="unit_шт">шт</option><option value="кг" data-i18n="unit_кг">кг</option>
+                            <option value="гр" data-i18n="unit_гр">гр</option><option value="л" data-i18n="unit_л">л</option>
+                            <option value="мл" data-i18n="unit_мл">мл</option><option value="упак" data-i18n="unit_упак">упак</option>
+                            <option value="порц" data-i18n="unit_порц">порц</option>
                         </select>
                     </div>
                     <div class="w-1/2">
@@ -172,14 +194,10 @@
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-5 items-end mt-4">
                 <div class="md:col-span-2 flex gap-4 items-center bg-slate-50 p-3 rounded-xl border border-slate-200">
-                    <span class="text-sm font-bold text-slate-600" data-i18n="exp_label">Срок хранения:</span>
-                    <div class="flex-1">
-                        <input type="number" id="p-days" data-i18n-placeholder="days_ph" placeholder="Дней" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-green-500">
-                    </div>
+                    <span class="text-sm font-bold text-slate-600" data-i18n="exp_label">Срок:</span>
+                    <div class="flex-1"><input type="number" id="p-days" data-i18n-placeholder="days_ph" placeholder="Дней" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-green-500"></div>
                     <span class="text-slate-400 text-sm" data-i18n="or">ИЛИ</span>
-                    <div class="flex-1">
-                        <input type="text" id="p-date" placeholder="ДД-ММ-ГГГГ" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-green-500 text-slate-600 cursor-pointer">
-                    </div>
+                    <div class="flex-1"><input type="text" id="p-date" placeholder="ДД-ММ-ГГГГ" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-green-500 text-slate-600 cursor-pointer flatpickr-input"></div>
                 </div>
                 <div><button id="btn-toggle-advanced" class="w-full text-slate-500 hover:text-indigo-600 font-semibold text-sm transition py-3" data-i18n="adv_settings">⚙️ Расширенные настройки ▾</button></div>
                 <div><button id="btn-add" class="w-full bg-green-500 hover:bg-green-600 text-white font-black text-lg py-3 px-4 rounded-xl transition shadow-lg" data-i18n="add_btn">➕ В холодильник</button></div>
@@ -189,19 +207,18 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
                         <label for="p-price" class="block text-xs font-semibold text-slate-500 mb-1" data-i18n="price_label">Цена</label>
-                        <input type="number" id="p-price" data-i18n-placeholder="price_ph" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none">
+                        <div class="flex gap-2">
+                            <input type="number" id="p-price" data-i18n-placeholder="price_ph" class="flex-1 bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none">
+                            <select id="p-currency" class="bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none font-bold text-slate-600">
+                                <option value="RUB">₽</option><option value="ILS">₪</option><option value="USD">$</option><option value="EUR">€</option>
+                            </select>
+                        </div>
                     </div>
-                    <div>
-                        <label for="p-composition" class="block text-xs font-semibold text-slate-500 mb-1" data-i18n="comp_label">Состав</label>
-                        <input type="text" id="p-composition" data-i18n-placeholder="comp_ph" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none">
-                    </div>
-                    <div>
-                        <label for="p-note" class="block text-xs font-semibold text-slate-500 mb-1" data-i18n="note_label">Заметка</label>
-                        <input type="text" id="p-note" data-i18n-placeholder="note_ph" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none">
-                    </div>
+                    <div><label for="p-composition" class="block text-xs font-semibold text-slate-500 mb-1" data-i18n="comp_label">Состав</label><input type="text" id="p-composition" data-i18n-placeholder="comp_ph" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none"></div>
+                    <div><label for="p-note" class="block text-xs font-semibold text-slate-500 mb-1" data-i18n="note_label">Заметка</label><input type="text" id="p-note" data-i18n-placeholder="note_ph" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none"></div>
                 </div>
                 <div class="flex flex-wrap gap-6 text-sm font-medium text-slate-700 bg-indigo-50 p-4 rounded-xl border border-indigo-100">
-                    <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-900"><input type="checkbox" id="p-perishable" class="w-5 h-5 text-indigo-600 rounded"> <span data-i18n="perish_label">⚠️ Скоропортящееся</span></label>
+                    <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-900"><input type="checkbox" id="p-perishable" class="w-5 h-5 text-indigo-600 rounded"> <span data-i18n="perish_label">⚠️ Скоропорт</span></label>
                     <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-900"><input type="checkbox" id="p-frozen" class="w-5 h-5 text-indigo-600 rounded"> <span data-i18n="frozen_label">❄️ В морозилку</span></label>
                     <label class="flex items-center gap-2 cursor-pointer hover:text-indigo-900"><input type="checkbox" id="p-cooked" class="w-5 h-5 text-orange-500 rounded"> <span data-i18n="cooked_label">⭐ Требует оценки</span></label>
                 </div>
@@ -209,66 +226,52 @@
         </div>
     </section>
 
+    <!-- ПОЛКИ ХОЛОДИЛЬНИКА -->
     <section class="bg-white rounded-2xl p-6 shadow-sm">
         <h2 class="text-2xl font-black text-slate-800 mb-6 border-b pb-4" data-i18n="shelves_title">🧊 Содержимое полок</h2>
         <div id="fridge-shelves" class="space-y-4"></div>
     </section>
 </div>
 
+<!-- МОДАЛКИ (Сканер, Превью, Инструкция, Оценка) -->
 <div id="scanner-modal" class="hidden fixed inset-0 bg-slate-900/95 backdrop-blur-md z-[60] flex flex-col justify-center items-center p-4 transition-opacity">
     <div id="scanner-container" class="w-full max-w-md bg-white rounded-3xl overflow-hidden flex flex-col relative shadow-2xl transition-all duration-300">
-        <div class="p-5 bg-indigo-600 text-white flex justify-between items-center transition-colors duration-300" id="scanner-header">
-            <h3 class="font-bold text-lg flex items-center gap-2" data-i18n="scan_title">📷 Скан штрих-кода</h3>
-            <button id="btn-close-scanner" class="text-white hover:text-indigo-200 text-4xl leading-none font-light">&times;</button>
-        </div>
-
-        <div class="relative w-full bg-black flex items-center justify-center overflow-hidden" style="min-height: 350px;">
-            <div id="reader" class="w-full absolute inset-0"></div>
-            <div id="scanner-target-box" class="absolute z-50 w-64 h-48 border-4 border-red-500 rounded-2xl pointer-events-none transition-all duration-300 flex justify-center">
-                <div id="scanner-laser" class="absolute w-full h-1 bg-red-500 shadow-[0_0_15px_3px_red] pointer-events-none scan-laser-active"></div>
-            </div>
-        </div>
-
-        <div id="scanner-status" class="p-6 text-center text-sm font-semibold bg-slate-50 text-slate-600 transition-colors" data-i18n="scan_wait">
-            Поместите штрих-код в рамку. Ищем фокус...
-        </div>
+        <div class="p-5 bg-indigo-600 text-white flex justify-between items-center transition-colors duration-300" id="scanner-header"><h3 class="font-bold text-lg flex items-center gap-2" data-i18n="scan_title">📷 Скан штрих-кода</h3><button id="btn-close-scanner" class="text-white hover:text-indigo-200 text-4xl leading-none font-light">&times;</button></div>
+        <div class="relative w-full bg-black flex items-center justify-center overflow-hidden" style="min-height: 350px;"><div id="reader" class="w-full absolute inset-0"></div><div id="scanner-target-box" class="absolute z-50 w-64 h-48 border-4 border-red-500 rounded-2xl pointer-events-none transition-all duration-300 flex justify-center"><div id="scanner-laser" class="absolute w-full h-1 bg-red-500 shadow-[0_0_15px_3px_red] pointer-events-none scan-laser-active"></div></div></div>
+        <div id="scanner-status" class="p-6 text-center text-sm font-semibold bg-slate-50 text-slate-600 transition-colors" data-i18n="scan_wait">Поместите штрих-код в рамку. Ищем фокус...</div>
     </div>
 </div>
 
 <div id="scan-preview-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[70] flex flex-col justify-center items-center p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 relative">
         <h3 class="text-xl font-black text-indigo-600 mb-4 flex items-center gap-2" data-i18n="preview_title">📦 Распознан продукт</h3>
-
-        <div class="flex gap-4 mb-4">
-            <img id="preview-img" src="" class="hidden w-20 h-20 object-cover rounded-xl shadow-sm border border-slate-200" />
-            <div>
-                <div id="preview-name" class="font-bold text-lg text-slate-800 leading-tight"></div>
-                <div id="preview-barcode" class="text-xs text-slate-400 font-mono mt-1"></div>
-            </div>
-        </div>
-
-        <div id="preview-ingredients-box" class="hidden mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 max-h-24 overflow-y-auto">
-            <strong data-i18n="comp_label">Состав:</strong> <span id="preview-ingredients"></span>
-        </div>
-
-        <!-- НОВОЕ: БЛОК ИНСАЙТОВ ОТ ИИ (Хранение, Сроки, Рецепты) -->
-        <div id="preview-ai-insights" class="hidden mb-6 p-4 bg-indigo-50 rounded-xl border border-indigo-100 text-sm text-indigo-900 shadow-inner">
-            <!-- Сюда прилетит ответ от ИИ -->
-        </div>
-
-        <p class="text-xs text-red-500 mb-6 font-medium bg-red-50 p-3 rounded-xl border border-red-100 leading-snug" data-i18n="preview_fake_warn">
-            ⚠️ Базы штрих-кодов могут ошибаться.
-        </p>
-
+        <div class="flex gap-4 mb-4"><img id="preview-img" src="" class="hidden w-20 h-20 object-cover rounded-xl shadow-sm border border-slate-200" /><div><div id="preview-name" class="font-bold text-lg text-slate-800 leading-tight"></div><div id="preview-barcode" class="text-xs text-slate-400 font-mono mt-1"></div></div></div>
+        <div id="preview-ingredients-box" class="hidden mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 max-h-24 overflow-y-auto"><strong data-i18n="comp_label">Состав:</strong> <span id="preview-ingredients"></span></div>
+        <div id="preview-ai-insights" class="hidden mb-6 p-4 bg-indigo-50 rounded-xl border border-indigo-100 text-sm text-indigo-900 shadow-inner"></div>
+        <p class="text-xs text-red-500 mb-6 font-medium bg-red-50 p-3 rounded-xl border border-red-100 leading-snug" data-i18n="preview_fake_warn">⚠️ Базы могут ошибаться.</p>
         <div class="flex flex-col gap-3">
-            <button id="btn-preview-add" class="w-full bg-green-500 hover:bg-green-600 text-white font-black py-3 rounded-xl transition" data-i18n="btn_preview_add">✅ Перенести в форму</button>
+            <button id="btn-preview-add" class="w-full bg-green-500 hover:bg-green-600 text-white font-black py-3 rounded-xl transition shadow" data-i18n="btn_preview_add">✅ Перенести в форму</button>
+            <button id="btn-preview-cart" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl transition shadow" data-i18n="btn_preview_cart">📝 В список покупок</button>
             <button id="btn-preview-next" class="w-full bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-bold py-3 rounded-xl transition" data-i18n="btn_preview_next">🔄 Сканировать следующий</button>
             <button id="btn-preview-fake" class="w-full text-slate-400 hover:text-red-500 font-bold py-2 text-sm transition" data-i18n="btn_preview_fake">❌ Ошибка / Подделка</button>
         </div>
     </div>
 </div>
 
-<!-- Остальные модалки (оценка и т.д.) -->
+<div id="instruction-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[80] flex justify-center items-center p-4 transition-opacity">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 relative">
+        <button id="btn-close-instruction" class="absolute top-4 right-5 text-slate-400 hover:text-slate-600 transition text-3xl font-bold">&times;</button>
+        <h2 class="text-2xl font-black text-slate-800 mb-4 flex items-center gap-2">👋 Добро пожаловать!</h2>
+        <div class="space-y-3 text-sm text-slate-600 mb-6">
+            <p><b>1. Семья:</b> Укажите свое имя и API-ключ в шапке.</p>
+            <p><b>2. Сканер:</b> Попробуйте отсканировать штрих-код продукта.</p>
+            <p><b>3. AI-Шеф:</b> Не знаете, что приготовить? Нажмите "Из всего, что есть", и нейросеть составит меню.</p>
+            <p><b>4. Звездочки:</b> После съедания блюда программа попросит поставить ему оценку.</p>
+        </div>
+        <button id="btn-understand" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-lg py-3 rounded-xl transition shadow-lg">Всё понятно!</button>
+    </div>
+</div>
+
 <div id="rating-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex justify-center items-center p-4 transition-opacity">
     <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 relative text-center">
         <button id="btn-close-rating" class="absolute top-4 right-5 text-slate-400 hover:text-slate-600 transition text-3xl font-bold">&times;</button>
@@ -283,6 +286,12 @@
 </div>
 <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-3 pointer-events-none"></div>
 
+<!-- Регистрация PWA Service Worker -->
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>console.log("Локальный запуск без HTTPS")));
+    }
+</script>
 <script type="module" src="./js/app.js"></script>
 </body>
 </html>
