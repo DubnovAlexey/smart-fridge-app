@@ -156,6 +156,7 @@
             </div>
         </div>
 
+        <!-- Контейнер для отображения ответа от нейросети -->
         <div id="ai-response-box" class="hidden mt-4 bg-white rounded-xl p-5 text-sm text-slate-700 border border-blue-100 max-h-96 overflow-y-auto shadow-inner leading-relaxed"></div>
     </section>
 
@@ -171,6 +172,7 @@
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2" data-i18n="add_title">➕ Добавить на полку</h2>
                 <div class="flex gap-3">
+                    <!-- Запуск Турбо-Сканера -->
                     <button id="btn-scan-barcode" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-black transition flex items-center gap-2 shadow-md" data-i18n="scan_btn">📷 Скан штрих-кода</button>
                 </div>
             </div>
@@ -221,7 +223,7 @@
                 <div><button id="btn-add" class="w-full bg-green-500 hover:bg-green-600 text-white font-black text-lg py-3 px-4 rounded-xl transition shadow-lg" data-i18n="add_btn">➕ В холодильник</button></div>
             </div>
 
-            <!-- Расширенные поля (Цена, Валюта, Состав) -->
+            <!-- Расширенные поля (Цена, Валюта, Заметки) -->
             <div id="advanced-settings" class="hidden mt-6 pt-6 border-t border-slate-200">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
@@ -272,14 +274,14 @@
         <button id="btn-close-instruction" class="absolute top-4 right-5 text-slate-400 hover:text-slate-600 transition text-3xl font-bold">&times;</button>
         <h2 class="text-2xl font-black text-slate-800 mb-4 flex items-center gap-2" data-i18n="welcome_title">👋 Добро пожаловать!</h2>
 
-        <div class="space-y-4 text-sm text-slate-600 mb-6 leading-relaxed max-h-[55vh] overflow-y-auto pr-2">
-            <p data-i18n="step_1">📦 <b>Полки и Сроки:</b> Добавляйте продукты. Умная система сама подскажет средний срок хранения по ГОСТу.</p>
-            <p data-i18n="step_2">📷 <b>Турбо-сканер:</b> Наведите камеру на штрих-код. Приложение само найдет продукт в мировой базе, покажет состав и срок годности.</p>
-            <p data-i18n="step_3">🤖 <b>AI-Шеф (Нейросеть):</b> Вставьте Gemini API-ключ в настройках (🔑). Просите ИИ придумать рецепт из остатков или спасти пропадающую еду.</p>
-            <p data-i18n="step_4">🛒 <b>ИИ-Снабженец:</b> Напишите желаемое блюдо (напр. 'Плов'). Нейросеть проверит ваши полки и добавит недостающее в 'Список покупок'.</p>
-            <p data-i18n="step_5">👨‍👩‍👧‍👦 <b>Семья и Права:</b> Выбирайте свои имена. Админ может настраивать права для детей (брать/списывать) и гостей.</p>
-            <p data-i18n="step_6">⭐ <b>Отзывы:</b> Отмечайте готовые блюда галочкой 'Оценить'. После того как вы их съедите, программа попросит поставить от 1 до 5 звезд.</p>
-            <p data-i18n="step_7">📊 <b>Статистика:</b> Следите за тем, сколько еды съедено, а сколько выброшено (и на какую сумму). Сохраняйте базу в Excel (CSV).</p>
+        <div class="text-sm text-slate-600 mb-6 leading-relaxed max-h-[60vh] overflow-y-auto pr-2">
+            <div data-i18n="step_1"></div>
+            <div data-i18n="step_2"></div>
+            <div data-i18n="step_3"></div>
+            <div data-i18n="step_4"></div>
+            <div data-i18n="step_5"></div>
+            <div data-i18n="step_6"></div>
+            <div data-i18n="step_7"></div>
         </div>
 
         <button id="btn-understand" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-lg py-3 rounded-xl transition shadow-lg" data-i18n="btn_understand">Всё понятно!</button>
@@ -288,8 +290,8 @@
 
 <!-- БЛОК: Баннер установки PWA для пользователей Apple iPhone (iOS) -->
 <div id="ios-install-banner" class="hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 shadow-[0_-5px_15px_rgba(0,0,0,0.1)] z-[5000] flex justify-between items-center gap-4">
-    <div class="text-sm font-medium text-slate-700" data-i18n="ios_install">📱 <b>Установите приложение:</b> нажмите ⎋ Поделиться, затем «На экран Домой».</div>
-    <button id="btn-close-ios-banner" class="text-slate-400 hover:text-slate-700 text-2xl font-bold px-2">&times;</button>
+    <div class="text-sm font-medium text-slate-700" data-i18n="ios_install">🍎 <b>Apple запрещает прямую установку.</b><br>Чтобы скачать приложение, найдите в браузере значок <b>Поделиться</b> (квадрат со стрелочкой ⎋) и выберите <b>«На экран Домой»</b>.</div>
+    <button id="btn-close-ios-banner" class="text-slate-400 hover:text-slate-700 text-3xl font-bold px-2">&times;</button>
 </div>
 
 <!-- БЛОК: Модалка Сканера штрих-кодов -->
@@ -332,7 +334,7 @@
     </div>
 </div>
 
-<!-- БЛОК: Контейнер для всплывающих уведомлений (Toasts) поверх всех окон -->
+<!-- БЛОК: Контейнер для всплывающих уведомлений (Toasts) поверх всех окон (z-[9999]) -->
 <div id="toast-container" class="fixed bottom-4 right-4 z-[9999] flex flex-col gap-3 pointer-events-none"></div>
 
 <!-- Регистрация Service Worker для PWA -->

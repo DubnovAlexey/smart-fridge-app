@@ -153,7 +153,7 @@ document.getElementById('btn-close-ios-banner')?.addEventListener('click', () =>
 });
 
 // ==========================================
-// БЛОК 4: ЛОКАЛИЗАЦИЯ И КАЛЕНДАРЬ
+// БЛОК 4: ЛОКАЛИЗАЦИЯ И КАЛЕНДАРЬ (С ЗАЩИТОЙ)
 // ==========================================
 function applyTranslations(lang) {
     localStorage.setItem('appLang', lang);
@@ -166,7 +166,7 @@ function applyTranslations(lang) {
         document.body.dir = dict.dir;
         document.documentElement.lang = lang;
 
-        // Безопасная подстановка текста (защита от undefined)
+        // Безопасная подстановка текста без undefined
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.getAttribute('data-i18n');
             if (dict[key] !== undefined) {
@@ -300,7 +300,7 @@ document.getElementById('btn-submit-rating')?.addEventListener('click', async (e
 });
 
 // ==========================================
-// БЛОК 7: СКАНЕР ШТРИХ-КОДОВ И ПРЕВЬЮ
+// БЛОК 7: СКАНЕР ПРОДУКТОВ И ПРЕВЬЮ
 // ==========================================
 const previewModal = document.getElementById('scan-preview-modal');
 let scannedProductTemp = null;

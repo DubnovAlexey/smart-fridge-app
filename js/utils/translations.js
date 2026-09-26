@@ -45,19 +45,19 @@ export const TRANSLATIONS = {
         api_saved: "Ключ сохранен!",
 
         welcome_title: "👋 Добро пожаловать!",
-        step_1: "📦 <b>Полки и Сроки:</b> Добавляйте продукты. Система подскажет сроки по ГОСТу.",
-        step_2: "📷 <b>Турбо-сканер:</b> Наведите камеру на штрих-код для поиска продукта в базе.",
-        step_3: "🤖 <b>AI-Шеф:</b> Внесите API-ключ (🔑) в настройках ИИ и просите рецепты.",
-        step_4: "🛒 <b>Снабженец:</b> Введите желаемое блюдо, и ИИ соберет список покупок.",
-        step_5: "👨‍👩‍👧‍👦 <b>Семья и Права:</b> Админ настраивает права для детей и гостей.",
-        step_6: "⭐ <b>Отзывы:</b> Отмечайте галочкой 'Оценить', чтобы ставить блюдам звезды.",
-        step_7: "📊 <b>Статистика:</b> Следите за тратами и выгружайте базу в CSV.",
-        btn_understand: "Всё понятно!",
+        step_1: "<div class='mb-3'><b class='text-indigo-600 text-base'>1️⃣ Кто вы? (Роли)</b><br>В самом верху выберите свое имя. Так приложение поймет, кто добавил еду и кто оставил отзыв. Если вы 'Админ', вы можете давать и забирать права у других.</div>",
+        step_2: "<div class='mb-3'><b class='text-indigo-600 text-base'>2️⃣ Как добавить продукт?</b><br>Нажмите «Скан штрих-кода» и наведите камеру на товар. Умная база сама найдет название. Вам останется лишь ввести количество и нажать зеленую кнопку «➕ В холодильник». Срок годности поставится сам!</div>",
+        step_3: "<div class='mb-3'><b class='text-indigo-600 text-base'>3️⃣ ИИ-Шеф (Рецепты)</b><br>Нажмите «🔑 AI-Ключ» в шапке и вставьте свой ключ. Теперь нажмите «🥗 Из всего», и нейросеть сама придумает блюдо из того, что прямо сейчас лежит на ваших полках!</div>",
+        step_4: "<div class='mb-3'><b class='text-indigo-600 text-base'>4️⃣ Умный список покупок</b><br>Захотели борщ? Напишите слово «Борщ» и нажмите «🛒 Что докупить?». Нейросеть проверит ваш холодильник и сама добавит недостающие продукты в корзину.</div>",
+        step_5: "<div class='mb-3'><b class='text-indigo-600 text-base'>5️⃣ Как взять или выбросить?</b><br>На карточке продукта нажмите кнопку с минусом (Взять), чтобы указать, сколько вы съели. Для списания испорченной еды в мусор есть кнопка 🗑️.</div>",
+        step_6: "<div class='mb-3'><b class='text-indigo-600 text-base'>6️⃣ Рейтинг блюд</b><br>Отмечайте приготовленную домашнюю еду галочкой «⭐ Требует оценки» при добавлении. Когда вы ее съедите, программа попросит поставить от 1 до 5 звезд.</div>",
+        step_7: "<div class='mb-3'><b class='text-indigo-600 text-base'>7️⃣ Финансы и Статистика</b><br>Приложение считает, на какую сумму испортились продукты (ваши Потери). Старайтесь, чтобы эта цифра всегда была равна нулю!</div>",
+        btn_understand: "Мне всё понятно!",
 
-        ios_install: "📱 <b>Установите приложение:</b> нажмите ⎋ Поделиться, затем «На экран Домой»."
+        ios_install: "🍎 <b>Apple запрещает прямую установку.</b><br>Чтобы скачать приложение, найдите в браузере значок <b>Поделиться</b> (квадрат со стрелочкой ⎋) и выберите <b>«На экран Домой»</b>."
     },
     // --------------------------------------------------------------------------
-    // 2. ИВРИТ (RTL - Справа налево)
+    // 2. ИВРИТ (RTL)
     // --------------------------------------------------------------------------
     he: {
         dir: 'rtl', title: "❄️ מקרר חכם", how_to: "ℹ️ הדרכה",
@@ -69,7 +69,7 @@ export const TRANSLATIONS = {
         role_user: "🛡️ משתמש", role_admin: "🛠️ מנהל", role_guest: "👁️ אורח", role_child: "🧒 ילד",
         rights_title: "⚙️ הרשאות", guest_rights: "👤 אורחים", child_rights: "🧒 ילדים", allow_take: "לקחת", allow_waste: "לזרוק",
         cat_dairy: "🥛 חלב", cat_meat: "🥩 בשר", cat_veg: "🍎 ירקות", cat_prepared: "🍲 מוכן", cat_preserves: "🥫 שימורים", cat_alcohol: "🍷 אלכוהול", cat_other: "📦 אחר",
-        unit_шт: "יח'", unit_кг: "ק״ג", unit_гр: "גרם", unit_л: "ליטר", unit_мл: "מ״ל", unit_упаק: "אריזה", unit_порц: "מנה",
+        unit_шт: "יח'", unit_кг: "ק״ג", unit_гр: "גרם", unit_л: "ליטר", unit_мл: "מ״ל", unit_упак: "אריזה", unit_порц: "מנה",
         price_label: "מחיר", comp_label: "רכיבים", note_label: "הערה", perish_label: "⚠️ מתקלקל", frozen_label: "❄️ מקפיא", cooked_label: "⭐ דירוג",
         scan_title: "📷 סורק", scan_wait: "סורק...", scan_code: "קוד", scan_search: "מחפש...", scan_not_found: "לא נמצא",
         what_add_ph: "חלב...", count_ph: "1", days_ph: "ימים", price_ph: "מחיר", comp_ph: "רכיבים...", note_ph: "חנות", name_ph: "שם",
@@ -85,15 +85,15 @@ export const TRANSLATIONS = {
         btn_api_settings: "🔑 מפתח API",
         api_modal_title: "🤖 הגדרות AI", api_modal_desc: "הזן את מפתח ה-Gemini API שלך.", api_modal_btn: "💾 שמור", api_saved: "נשמר!",
         welcome_title: "👋 ברוכים הבאים!",
-        step_1: "📦 <b>מדפים:</b> הוסף מוצרים בקלות.",
-        step_2: "📷 <b>סורק טורבו:</b> סרוק ברקודים למידע מהיר.",
-        step_3: "🤖 <b>שף AI:</b> הוסף מפתח (🔑) ובקש מתכונים.",
-        step_4: "🛒 <b>רשימת קניות:</b> ה-AI ימצא מה חסר.",
-        step_5: "👨‍👩‍👧‍👦 <b>משפחה:</b> ניהול הרשאות מלא.",
-        step_6: "⭐ <b>דירוגים:</b> דרג מאכלים 1-5 כוכבים.",
-        step_7: "📊 <b>סטטיסטיקה:</b> עקוב אחר הפסדים ויצא ל-CSV.",
+        step_1: "<div class='mb-3'><b class='text-indigo-600 text-base'>1️⃣ משפחה:</b> בחר את שמך למעלה כדי שהמערכת תדע מי ביצע פעולות.</div>",
+        step_2: "<div class='mb-3'><b class='text-indigo-600 text-base'>2️⃣ הוספת מוצר:</b> השתמש בסורק הברקודים כדי להוסיף מוצרים בקלות.</div>",
+        step_3: "<div class='mb-3'><b class='text-indigo-600 text-base'>3️⃣ שף AI:</b> הוסף מפתח API ובקש מתכונים ממה שיש במקרר.</div>",
+        step_4: "<div class='mb-3'><b class='text-indigo-600 text-base'>4️⃣ רשימת קניות חכמה:</b> כתוב מה תרצה לאכול וה-AI יוסיף את החסר לעגלה.</div>",
+        step_5: "<div class='mb-3'><b class='text-indigo-600 text-base'>5️⃣ לקחת או לזרוק:</b> לחץ על המינוס כדי לקחת, או על הפח כדי לזרוק מוצר.</div>",
+        step_6: "<div class='mb-3'><b class='text-indigo-600 text-base'>6️⃣ דירוגים:</b> דרג ארוחות שאכלת מ-1 עד 5 כוכבים.</div>",
+        step_7: "<div class='mb-3'><b class='text-indigo-600 text-base'>7️⃣ סטטיסטיקה:</b> עקוב אחר הפסדים כספיים של אוכל שנזרק.</div>",
         btn_understand: "הבנתי!",
-        ios_install: "📱 <b>התקן את האפליקציה:</b> לחץ על ⎋ שתף, ואז 'למסך הבית'."
+        ios_install: "🍎 <b>התקנת אפליקציה:</b> לחץ על כפתור השיתוף בדפדפן (⎋) ובחר 'למסך הבית'."
     },
     // --------------------------------------------------------------------------
     // 3. АНГЛИЙСКИЙ
@@ -124,18 +124,18 @@ export const TRANSLATIONS = {
         btn_api_settings: "🔑 AI Key",
         api_modal_title: "🤖 AI Settings", api_modal_desc: "Enter your Gemini API key.", api_modal_btn: "💾 Save", api_saved: "Key saved!",
         welcome_title: "👋 Welcome!",
-        step_1: "📦 <b>Shelves & Dates:</b> Add products. The system suggests expiration dates.",
-        step_2: "📷 <b>Turbo Scanner:</b> Scan barcodes to find ingredients and storage tips.",
-        step_3: "🤖 <b>AI Chef:</b> Add your API key (🔑) to ask the AI for smart recipes.",
-        step_4: "🛒 <b>AI Supplier:</b> Enter a dish name. AI checks your fridge and adds missing items to the Cart.",
-        step_5: "👨‍👩‍👧‍👦 <b>Family & Roles:</b> Admins manage permissions for kids and guests.",
-        step_6: "⭐ <b>Ratings:</b> Mark meals and rate them from 1 to 5 stars after eating.",
-        step_7: "📊 <b>Stats:</b> Track wasted food (financial loss) and export data via CSV.",
+        step_1: "<div class='mb-3'><b class='text-indigo-600 text-base'>1️⃣ Who are you?</b><br>Select your name at the top to track actions and reviews.</div>",
+        step_2: "<div class='mb-3'><b class='text-indigo-600 text-base'>2️⃣ Adding Food</b><br>Use the Barcode Scanner to quickly add items and auto-fill details.</div>",
+        step_3: "<div class='mb-3'><b class='text-indigo-600 text-base'>3️⃣ AI Chef</b><br>Add your API Key and ask the AI for recipes based on what you have.</div>",
+        step_4: "<div class='mb-3'><b class='text-indigo-600 text-base'>4️⃣ Smart Cart</b><br>Type a dish name, and AI will add the missing ingredients to your cart.</div>",
+        step_5: "<div class='mb-3'><b class='text-indigo-600 text-base'>5️⃣ Take or Waste</b><br>Click minus to consume an item, or the trash bin to waste it.</div>",
+        step_6: "<div class='mb-3'><b class='text-indigo-600 text-base'>6️⃣ Ratings</b><br>Rate homemade meals from 1 to 5 stars after eating.</div>",
+        step_7: "<div class='mb-3'><b class='text-indigo-600 text-base'>7️⃣ Stats</b><br>Track your wasted food value and try to keep it at zero!</div>",
         btn_understand: "Got it!",
-        ios_install: "📱 <b>Install App:</b> Tap ⎋ Share, then 'Add to Home Screen'."
+        ios_install: "🍎 <b>Install App:</b> Tap the browser's Share icon (⎋) and select 'Add to Home Screen'."
     },
-    de: { dir: 'ltr', title: "❄️ Kühlschrank", stats_title: "📊 Statistiken", consumed: "✅ Verbr.:", wasted: "🗑 Müll:", lost: "💸 Verl.:", unit_шт: "Stk", unit_кг: "kg", unit_гр: "g", unit_л: "L", unit_мл: "ml", unit_упак: "Pckg", unit_порц: "Port.", btn_export: "📥 Export", btn_import: "📤 Import", btn_preview_add: "✅ Zum Formular", loading_ai: "KI DENKT...", btn_api_settings: "🔑 KI", api_modal_title: "KI-Einstellungen", api_modal_desc: "Gemini API-Schlüssel eingeben.", api_modal_btn: "Speichern", api_saved: "Gespeichert!", welcome_title: "👋 Willkommen!", step_1: "Regale verwalten.", step_2: "Barcode scannen.", step_3: "KI-Rezepte testen.", step_4: "KI-Einkaufsliste.", step_5: "Familienzugang.", step_6: "Mahlzeiten bewerten.", step_7: "Statistiken ansehen.", btn_understand: "Verstanden!", ios_install: "📱 Teilen ⎋ -> 'Zum Home-Bildschirm'." },
-    es: { dir: 'ltr', title: "❄️ Nevera", stats_title: "📊 Estadísticas", consumed: "✅ Cons.:", wasted: "🗑 Basura:", lost: "💸 Perd.:", unit_шт: "ud", unit_кг: "kg", unit_гр: "g", unit_л: "L", unit_мл: "ml", unit_упак: "paq", unit_порц: "porc", btn_export: "📥 Exportar", btn_import: "📤 Importar", btn_preview_add: "✅ Al formulario", loading_ai: "LA IA PIENSA...", btn_api_settings: "🔑 IA", api_modal_title: "Ajustes IA", api_modal_desc: "Clave API Gemini.", api_modal_btn: "Guardar", api_saved: "Guardado", welcome_title: "👋 ¡Bienvenido!", step_1: "Gestionar estantes.", step_2: "Escanear código.", step_3: "Recetas IA.", step_4: "Lista de compras IA.", step_5: "Permisos familiares.", step_6: "Valorar comidas.", step_7: "Ver estadísticas.", btn_understand: "¡Entendido!", ios_install: "📱 Compartir ⎋ -> 'Añadir a inicio'." }
+    de: { dir: 'ltr', title: "❄️ Kühlschrank", stats_title: "📊 Statistiken", consumed: "✅ Verbr.:", wasted: "🗑 Müll:", lost: "💸 Verl.:", unit_шт: "Stk", unit_кг: "kg", unit_гр: "g", unit_л: "L", unit_мл: "ml", unit_упак: "Pckg", unit_порц: "Port.", btn_export: "📥 Export", btn_import: "📤 Import", btn_preview_add: "✅ Zum Formular", loading_ai: "KI DENKT...", btn_api_settings: "🔑 KI", api_modal_title: "KI-Einstellungen", api_modal_desc: "Gemini API-Schlüssel eingeben.", api_modal_btn: "Speichern", api_saved: "Gespeichert!", welcome_title: "👋 Willkommen!", step_1: "Name eingeben.", step_2: "Barcode scannen.", step_3: "KI-Rezepte testen.", step_4: "Einkaufsliste.", step_5: "Familienzugang.", step_6: "Mahlzeiten bewerten.", step_7: "Statistiken ansehen.", btn_understand: "Verstanden!", ios_install: "📱 Teilen ⎋ -> 'Zum Home-Bildschirm'." },
+    es: { dir: 'ltr', title: "❄️ Nevera", stats_title: "📊 Estadísticas", consumed: "✅ Cons.:", wasted: "🗑 Basura:", lost: "💸 Perd.:", unit_шт: "ud", unit_кг: "kg", unit_гр: "g", unit_л: "L", unit_мл: "ml", unit_упак: "paq", unit_порц: "porc", btn_export: "📥 Exportar", btn_import: "📤 Importar", btn_preview_add: "✅ Al formulario", loading_ai: "LA IA PIENSA...", btn_api_settings: "🔑 IA", api_modal_title: "Ajustes IA", api_modal_desc: "Clave API Gemini.", api_modal_btn: "Guardar", api_saved: "Guardado", welcome_title: "👋 ¡Bienvenido!", step_1: "Ingresa nombre.", step_2: "Escanea código.", step_3: "Recetas IA.", step_4: "Lista de compras IA.", step_5: "Permisos familiares.", step_6: "Valorar comidas.", step_7: "Ver estadísticas.", btn_understand: "¡Entendido!", ios_install: "📱 Compartir ⎋ -> 'Añadir a inicio'." }
 };
 
 // Функция безопасного извлечения перевода. Защита от undefined.
