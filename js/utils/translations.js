@@ -54,7 +54,9 @@ export const TRANSLATIONS = {
         step_7: "<div class='mb-3'><b class='text-indigo-600 text-base'>7️⃣ Финансы и Статистика</b><br>Приложение считает, на какую сумму испортились продукты (ваши Потери). Старайтесь, чтобы эта цифра всегда была равна нулю!</div>",
         btn_understand: "Мне всё понятно!",
 
-        ios_install: "🍎 <b>Apple запрещает прямую установку.</b><br>Чтобы скачать приложение, найдите в браузере значок <b>Поделиться</b> (квадрат со стрелочкой ⎋) и выберите <b>«На экран Домой»</b>."
+        pwa_banner_text: "Скачайте приложение на телефон для быстрого доступа!",
+        pwa_install_btn: "📲 Установить",
+        ios_install_guide: "🍎 <b>Apple запрещает прямую установку.</b><br>Нажмите <b>Поделиться</b> (квадрат со стрелочкой ⎋) внизу экрана и выберите <b>«На экран Домой»</b>."
     },
     // --------------------------------------------------------------------------
     // 2. ИВРИТ (RTL)
@@ -93,7 +95,9 @@ export const TRANSLATIONS = {
         step_6: "<div class='mb-3'><b class='text-indigo-600 text-base'>6️⃣ דירוגים:</b> דרג ארוחות שאכלת מ-1 עד 5 כוכבים.</div>",
         step_7: "<div class='mb-3'><b class='text-indigo-600 text-base'>7️⃣ סטטיסטיקה:</b> עקוב אחר הפסדים כספיים של אוכל שנזרק.</div>",
         btn_understand: "הבנתי!",
-        ios_install: "🍎 <b>התקנת אפליקציה:</b> לחץ על כפתור השיתוף בדפדפן (⎋) ובחר 'למסך הבית'."
+        pwa_banner_text: "התקן את האפליקציה בטלפון שלך!",
+        pwa_install_btn: "📲 התקן",
+        ios_install_guide: "🍎 <b>Apple חוסמת התקנה ישירה.</b><br>לחץ על כפתור השיתוף בדפדפן (⎋) ובחר <b>'למסך הבית'</b>."
     },
     // --------------------------------------------------------------------------
     // 3. АНГЛИЙСКИЙ
@@ -132,10 +136,40 @@ export const TRANSLATIONS = {
         step_6: "<div class='mb-3'><b class='text-indigo-600 text-base'>6️⃣ Ratings</b><br>Rate homemade meals from 1 to 5 stars after eating.</div>",
         step_7: "<div class='mb-3'><b class='text-indigo-600 text-base'>7️⃣ Stats</b><br>Track your wasted food value and try to keep it at zero!</div>",
         btn_understand: "Got it!",
-        ios_install: "🍎 <b>Install App:</b> Tap the browser's Share icon (⎋) and select 'Add to Home Screen'."
+        pwa_banner_text: "Install the app for quick access!",
+        pwa_install_btn: "📲 Install",
+        ios_install_guide: "🍎 <b>Apple blocks direct installation.</b><br>Tap <b>Share</b> (⎋) at the bottom and select <b>'Add to Home Screen'</b>."
     },
-    de: { dir: 'ltr', title: "❄️ Kühlschrank", stats_title: "📊 Statistiken", consumed: "✅ Verbr.:", wasted: "🗑 Müll:", lost: "💸 Verl.:", unit_шт: "Stk", unit_кг: "kg", unit_гр: "g", unit_л: "L", unit_мл: "ml", unit_упак: "Pckg", unit_порц: "Port.", btn_export: "📥 Export", btn_import: "📤 Import", btn_preview_add: "✅ Zum Formular", loading_ai: "KI DENKT...", btn_api_settings: "🔑 KI", api_modal_title: "KI-Einstellungen", api_modal_desc: "Gemini API-Schlüssel eingeben.", api_modal_btn: "Speichern", api_saved: "Gespeichert!", welcome_title: "👋 Willkommen!", step_1: "Name eingeben.", step_2: "Barcode scannen.", step_3: "KI-Rezepte testen.", step_4: "Einkaufsliste.", step_5: "Familienzugang.", step_6: "Mahlzeiten bewerten.", step_7: "Statistiken ansehen.", btn_understand: "Verstanden!", ios_install: "📱 Teilen ⎋ -> 'Zum Home-Bildschirm'." },
-    es: { dir: 'ltr', title: "❄️ Nevera", stats_title: "📊 Estadísticas", consumed: "✅ Cons.:", wasted: "🗑 Basura:", lost: "💸 Perd.:", unit_шт: "ud", unit_кг: "kg", unit_гр: "g", unit_л: "L", unit_мл: "ml", unit_упак: "paq", unit_порц: "porc", btn_export: "📥 Exportar", btn_import: "📤 Importar", btn_preview_add: "✅ Al formulario", loading_ai: "LA IA PIENSA...", btn_api_settings: "🔑 IA", api_modal_title: "Ajustes IA", api_modal_desc: "Clave API Gemini.", api_modal_btn: "Guardar", api_saved: "Guardado", welcome_title: "👋 ¡Bienvenido!", step_1: "Ingresa nombre.", step_2: "Escanea código.", step_3: "Recetas IA.", step_4: "Lista de compras IA.", step_5: "Permisos familiares.", step_6: "Valorar comidas.", step_7: "Ver estadísticas.", btn_understand: "¡Entendido!", ios_install: "📱 Compartir ⎋ -> 'Añadir a inicio'." }
+    // --------------------------------------------------------------------------
+    // 4. НЕМЕЦКИЙ (Полностью синхронизирован, чтобы не было undefined)
+    // --------------------------------------------------------------------------
+    de: {
+        dir: 'ltr', title: "❄️ Kühlschrank", how_to: "ℹ️ Guide",
+        stats_title: "📊 Statistiken", consumed: "✅ Verbr.:", wasted: "🗑 Müll:", lost: "💸 Verl.:", unit_шт: "Stk", unit_кг: "kg", unit_гр: "g", unit_л: "L", unit_мл: "ml", unit_упак: "Pckg", unit_порц: "Port.", btn_export: "📥 Export", btn_import: "📤 Import", btn_preview_add: "✅ Zum Formular", loading_ai: "KI DENKT...", btn_api_settings: "🔑 KI", api_modal_title: "KI-Einstellungen", api_modal_desc: "Gemini API-Schlüssel eingeben.", api_modal_btn: "Speichern", api_saved: "Gespeichert!", welcome_title: "👋 Willkommen!",
+        step_1: "<div class='mb-3'><b class='text-indigo-600 text-base'>1️⃣ Familie:</b> Name eingeben.</div>",
+        step_2: "<div class='mb-3'><b class='text-indigo-600 text-base'>2️⃣ Scanner:</b> Barcode scannen.</div>",
+        step_3: "<div class='mb-3'><b class='text-indigo-600 text-base'>3️⃣ KI-Koch:</b> KI-Rezepte testen.</div>",
+        step_4: "<div class='mb-3'><b class='text-indigo-600 text-base'>4️⃣ Einkaufsliste:</b> KI fügt hinzu.</div>",
+        step_5: "<div class='mb-3'><b class='text-indigo-600 text-base'>5️⃣ Verwaltung:</b> Rechte verwalten.</div>",
+        step_6: "<div class='mb-3'><b class='text-indigo-600 text-base'>6️⃣ Bewertung:</b> Mahlzeiten bewerten.</div>",
+        step_7: "<div class='mb-3'><b class='text-indigo-600 text-base'>7️⃣ Statistiken:</b> Finanzen prüfen.</div>",
+        btn_understand: "Verstanden!", pwa_banner_text: "App installieren!", pwa_install_btn: "📲 Installieren", ios_install_guide: "🍎 Teilen ⎋ -> 'Zum Home-Bildschirm'."
+    },
+    // --------------------------------------------------------------------------
+    // 5. ИСПАНСКИЙ (Полностью синхронизирован, чтобы не было undefined)
+    // --------------------------------------------------------------------------
+    es: {
+        dir: 'ltr', title: "❄️ Nevera", how_to: "ℹ️ Guía",
+        stats_title: "📊 Estadísticas", consumed: "✅ Cons.:", wasted: "🗑 Basura:", lost: "💸 Perd.:", unit_шт: "ud", unit_кг: "kg", unit_гр: "g", unit_л: "L", unit_мл: "ml", unit_упак: "paq", unit_порц: "porc", btn_export: "📥 Exportar", btn_import: "📤 Importar", btn_preview_add: "✅ Al formulario", loading_ai: "LA IA PIENSA...", btn_api_settings: "🔑 IA", api_modal_title: "Ajustes IA", api_modal_desc: "Clave API Gemini.", api_modal_btn: "Guardar", api_saved: "Guardado", welcome_title: "👋 ¡Bienvenido!",
+        step_1: "<div class='mb-3'><b class='text-indigo-600 text-base'>1️⃣ Familia:</b> Ingresa nombre.</div>",
+        step_2: "<div class='mb-3'><b class='text-indigo-600 text-base'>2️⃣ Escáner:</b> Escanea código.</div>",
+        step_3: "<div class='mb-3'><b class='text-indigo-600 text-base'>3️⃣ Chef IA:</b> Recetas IA.</div>",
+        step_4: "<div class='mb-3'><b class='text-indigo-600 text-base'>4️⃣ Compras:</b> Lista IA.</div>",
+        step_5: "<div class='mb-3'><b class='text-indigo-600 text-base'>5️⃣ Permisos:</b> Gestión.</div>",
+        step_6: "<div class='mb-3'><b class='text-indigo-600 text-base'>6️⃣ Valoración:</b> Valorar comidas.</div>",
+        step_7: "<div class='mb-3'><b class='text-indigo-600 text-base'>7️⃣ Estadísticas:</b> Ver pérdidas.</div>",
+        btn_understand: "¡Entendido!", pwa_banner_text: "¡Instalar la app!", pwa_install_btn: "📲 Instalar", ios_install_guide: "🍎 Compartir ⎋ -> 'Añadir a inicio'."
+    }
 };
 
 // Функция безопасного извлечения перевода. Защита от undefined.
@@ -145,6 +179,6 @@ export function t(key, defaultText = '') {
     if (TRANSLATIONS[lang] && TRANSLATIONS[lang][key] !== undefined) {
         return TRANSLATIONS[lang][key];
     }
-    // Если перевода нет (ошибка в словаре), возвращаем дефолтный текст или сам ключ
+    // Если перевода нет, возвращаем дефолтный текст или сам ключ
     return defaultText || key;
 }

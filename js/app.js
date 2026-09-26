@@ -8,7 +8,7 @@
 // 3. Отлавливает клики (добавление, списание, корзина, сканер).
 // 4. Связывает интерфейс (UI) с базой данных (FridgeModel) и аналитикой.
 // 5. Обрабатывает вызовы к нейросети (Gemini AI) с учетом языка.
-// 6. Проверяет iOS устройства для вывода баннера PWA.
+// 6. Управляет системными баннерами установки (PWA) для Android и iOS.
 // ==============================================================================
 
 import { FridgeModel } from './models/Fridge.js';
@@ -56,7 +56,7 @@ apiKeyInput.value = localStorage.getItem('gemini_api_key') || '';
 userNameInput.addEventListener('input', (e) => localStorage.setItem('smart_fridge_username', e.target.value.trim()));
 
 // ==========================================
-// БЛОК 1: АВТОРИЗАЦИЯ FIREBASE (Login / Register)
+// БЛОК 1: АВТОРИЗАЦИЯ FIREBASE
 // ==========================================
 onAuthStateChanged(auth, (user) => {
     if (user) {
@@ -86,7 +86,6 @@ document.getElementById('btn-auth-login')?.addEventListener('click', async (e) =
         await signInWithEmailAndPassword(auth, email, pass);
         showToast('Успешный вход!', 'success');
     } catch (error) {
-        // Автоматическая регистрация при отсутствии пользователя
         if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-login-credentials') {
             try {
                 await createUserWithEmailAndPassword(auth, email, pass);
@@ -114,7 +113,7 @@ document.getElementById('btn-auth-guest')?.addEventListener('click', () => {
 });
 
 // ==========================================
-// БЛОК 2: НАСТРОЙКИ API КЛЮЧА (Сохранение в localStorage)
+// БЛОК 2: НАСТРОЙКИ API КЛЮЧА
 // ==========================================
 document.getElementById('btn-open-api')?.addEventListener('click', () => {
     document.getElementById('api-modal').classList.remove('hidden');
@@ -130,30 +129,60 @@ document.getElementById('btn-save-api')?.addEventListener('click', () => {
 });
 
 // ==========================================
-// БЛОК 3: PWA БАННЕР ДЛЯ APPLE IPHONE
-// Выводит подсказку для пользователей iOS
+// БЛОК 3: УСТАНОВКА ПРИЛОЖЕНИЯ (PWA: ANDROID + IOS)
 // ==========================================
+const pwaBanner = document.getElementById('pwa-install-banner');
+const pwaTextActive = document.getElementById('pwa-text-active');
+const pwaTextIos = document.getElementById('pwa-text-ios');
+const btnPwaInstall = document.getElementById('btn-pwa-install');
+const btnClosePwa = document.getElementById('btn-close-pwa-banner');
+let deferredPrompt;
+
+// Ловим событие от Chrome на Android
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+
+    if (!localStorage.getItem('pwa_banner_closed')) {
+        pwaBanner.classList.remove('hidden');
+        pwaBanner.classList.add('flex');
+        pwaTextActive.classList.remove('hidden');
+        btnPwaInstall.classList.remove('hidden');
+    }
+});
+
+// Если нажали "Установить" на Android
+btnPwaInstall?.addEventListener('click', async () => {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            pwaBanner.classList.add('hidden');
+        }
+        deferredPrompt = null;
+    }
+});
+
+// Проверка и вывод инструкции для iPhone/iPad
 function checkIosBanner() {
-    const isIos = () => {
-        const userAgent = window.navigator.userAgent.toLowerCase();
-        return /iphone|ipad|ipod/.test(userAgent);
-    };
+    const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
 
-    if (isIos() && !isInStandaloneMode()) {
-        const iosBanner = document.getElementById('ios-install-banner');
-        if (iosBanner && !localStorage.getItem('ios_banner_closed')) {
-            iosBanner.classList.remove('hidden');
-        }
+    if (isIos() && !isInStandaloneMode() && !localStorage.getItem('pwa_banner_closed')) {
+        pwaBanner.classList.remove('hidden');
+        pwaBanner.classList.add('flex');
+        pwaTextIos.classList.remove('hidden');
     }
 }
-document.getElementById('btn-close-ios-banner')?.addEventListener('click', () => {
-    document.getElementById('ios-install-banner').classList.add('hidden');
-    localStorage.setItem('ios_banner_closed', 'true');
+
+btnClosePwa?.addEventListener('click', () => {
+    pwaBanner.classList.add('hidden');
+    pwaBanner.classList.remove('flex');
+    localStorage.setItem('pwa_banner_closed', 'true');
 });
 
 // ==========================================
-// БЛОК 4: ЛОКАЛИЗАЦИЯ И КАЛЕНДАРЬ (С ЗАЩИТОЙ)
+// БЛОК 4: ЛОКАЛИЗАЦИЯ И КАЛЕНДАРЬ
 // ==========================================
 function applyTranslations(lang) {
     localStorage.setItem('appLang', lang);
@@ -300,7 +329,7 @@ document.getElementById('btn-submit-rating')?.addEventListener('click', async (e
 });
 
 // ==========================================
-// БЛОК 7: СКАНЕР ПРОДУКТОВ И ПРЕВЬЮ
+// БЛОК 7: СКАНЕР ПРОДУКТОВ
 // ==========================================
 const previewModal = document.getElementById('scan-preview-modal');
 let scannedProductTemp = null;
@@ -317,14 +346,13 @@ const startBarcodeScanner = initScanner((productData) => {
         const ingBox = document.getElementById('preview-ingredients-box');
         if (productData.ingredients) { document.getElementById('preview-ingredients').textContent = productData.ingredients; ingBox.classList.remove('hidden'); } else { ingBox.classList.add('hidden'); }
 
-        // Фоновый запрос к ИИ для фактов
+        const aiBox = document.getElementById('preview-ai-insights');
         const apiKey = localStorage.getItem('gemini_api_key');
         if (apiKey) {
-            const aiBox = document.getElementById('preview-ai-insights');
             aiBox.classList.remove('hidden');
             aiBox.innerHTML = `<div class="flex items-center gap-2"><span class="animate-spin text-xl">⏳</span> <b>${t('preview_ai_loading', 'ИИ думает')}</b></div>`;
             askGeminiProductInfo(apiKey, productData.name, window.appLang).then(info => aiBox.innerHTML = info).catch(() => aiBox.classList.add('hidden'));
-        }
+        } else { aiBox.classList.add('hidden'); }
 
         previewModal.classList.remove('hidden');
     } else {
@@ -336,7 +364,6 @@ document.getElementById('btn-scan-barcode').addEventListener('click', startBarco
 document.getElementById('btn-preview-next')?.addEventListener('click', () => { previewModal.classList.add('hidden'); startBarcodeScanner(); });
 document.getElementById('btn-preview-fake')?.addEventListener('click', () => { previewModal.classList.add('hidden'); showToast(t('fake_alert', 'Жалоба отправлена'), 'info'); startBarcodeScanner(); });
 
-// Перенос данных из превью в форму добавления
 document.getElementById('btn-preview-add')?.addEventListener('click', () => {
     previewModal.classList.add('hidden');
     if (scannedProductTemp) {
@@ -367,7 +394,7 @@ document.getElementById('btn-preview-cart')?.addEventListener('click', async () 
 });
 
 // ==========================================
-// БЛОК 8: УПРАВЛЕНИЕ ХОЛОДИЛЬНИКОМ
+// БЛОК 8: УПРАВЛЕНИЕ: КАРТОЧКИ И ФОРМА
 // ==========================================
 async function promptAndConsume(batch) {
     const amountStr = prompt(`Сколько "${batch.unit}" взять? (Доступно: ${batch.count})`, "1");
@@ -389,7 +416,6 @@ async function handleAction(event) {
     const id = btn.dataset.id;
     const action = btn.dataset.action;
 
-    // Взаимодействие с Корзиной
     if (action === 'cart-remove') { await fridge.removeCartItem(id); playSound('remove'); return updateUI(); }
     if (action === 'cart-buy') {
         const item = fridge.cart.find(c => c.id === id);
@@ -405,7 +431,6 @@ async function handleAction(event) {
         return;
     }
 
-    // Взаимодействие с Полкой
     const batch = fridge.getBatchById(id);
     if (!batch) return;
 
@@ -453,7 +478,6 @@ async function handleAction(event) {
 document.getElementById('fridge-shelves').addEventListener('click', handleAction);
 document.getElementById('cart-items-container')?.addEventListener('click', handleAction);
 
-// Отправка формы ручного добавления продукта
 document.getElementById('btn-add').addEventListener('click', async (e) => {
     if (!PERMISSIONS[currentRole].canAdd) return;
 
@@ -489,14 +513,12 @@ document.getElementById('btn-add').addEventListener('click', async (e) => {
 // ==========================================
 // БЛОК 9: ИНТЕГРАЦИИ (CSV И НЕЙРОСЕТЬ)
 // ==========================================
-
 document.getElementById('btn-export-csv')?.addEventListener('click', () => exportToCSV(fridge.batches));
 document.getElementById('btn-import-csv')?.addEventListener('click', () => document.getElementById('input-csv').click());
 document.getElementById('input-csv')?.addEventListener('change', (e) => {
     if (e.target.files[0]) { importFromCSV(e.target.files[0], fridge, updateUI); e.target.value = ''; }
 });
 
-// Выполнение запросов к ИИ-Шефу с передачей языка
 async function executeAiTask(mode) {
     const apiKey = localStorage.getItem('gemini_api_key');
     if (!apiKey) return showToast('Нажмите на 🔑 AI-Ключ в шапке!', 'error');
@@ -525,7 +547,6 @@ document.getElementById('btn-ask-ai-rescue')?.addEventListener('click', () => ex
 document.getElementById('btn-ask-ai-all')?.addEventListener('click', () => executeAiTask('all'));
 document.getElementById('btn-ai-recipe')?.addEventListener('click', () => executeAiTask('specific'));
 
-// Снабженец (Сбор списка покупок)
 document.getElementById('btn-ai-supplier')?.addEventListener('click', async (e) => {
     const recipeName = document.getElementById('ai-recipe-input').value.trim();
     if (!recipeName) return showToast('Напишите название блюда!', 'error');

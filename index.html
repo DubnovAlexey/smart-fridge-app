@@ -4,11 +4,10 @@
 НАЗНАЧЕНИЕ: Главная страница приложения (Single Page Application).
 
 ЧТО ДЕЛАЕТ ЭТОТ ФАЙЛ:
-1. Загружает TailwindCSS (дизайн), html5-qrcode (сканер), Flatpickr (календарь).
-2. Отрисовывает шапку (выбор языка, имени, роли и кнопку настроек ИИ).
-3. Отрисовывает панели управления (Статистика, Права, AI-Шеф, Корзина).
-4. Отрисовывает форму добавления продуктов и секцию полок.
-5. Хранит скрытые модальные окна (Авторизация, Сканер, Инструкция из 7 шагов, Настройки API).
+1. Загружает библиотеки (TailwindCSS, html5-qrcode, Flatpickr).
+2. Отрисовывает шапку, панели управления, форму добавления и полки.
+3. Содержит все скрытые модальные окна (Авторизация, Сканер, Инструкция, Настройки API).
+4. Содержит универсальный баннер установки PWA для Android и iOS.
 ==============================================================================
 -->
 <!DOCTYPE html>
@@ -18,12 +17,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Умный холодильник 2.0</title>
 
-    <!-- БЛОК: Мета-теги и настройки PWA для телефона -->
+    <!-- Мета-теги и настройки PWA для телефона -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>❄️</text></svg>">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4f46e5">
 
-    <!-- БЛОК: Подключение внешних библиотек -->
+    <!-- Подключение внешних библиотек -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -34,7 +33,6 @@
     <script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
     <link rel="stylesheet" href="css/style.css">
 
-    <!-- БЛОК: Локальные стили анимаций -->
     <style>
         @keyframes scan { 0% { top: 5%; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 95%; opacity: 0; } }
         @keyframes spin-slow { 100% { transform: rotate(360deg); } }
@@ -48,7 +46,7 @@
 
 <!-- ================= ЭКРАНЫ БЛОКИРОВКИ ПОВЕРХ САЙТА ================= -->
 
-<!-- БЛОК: Окно Авторизации Firebase (Блокирует сайт до входа) -->
+<!-- Окно Авторизации Firebase -->
 <div id="auth-modal" class="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-[200] flex flex-col justify-center items-center p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 relative">
         <h2 class="text-3xl font-black text-indigo-600 mb-6 flex justify-center items-center gap-2">❄️ <span data-i18n="auth_title">Вход в систему</span></h2>
@@ -62,16 +60,16 @@
     </div>
 </div>
 
-<!-- БЛОК: Экран ожидания ответа от ИИ (Снежинка) -->
+<!-- Экран ожидания ответа ИИ -->
 <div id="loader-overlay" class="hidden fixed inset-0 bg-blue-900/80 backdrop-blur-md z-[100] flex flex-col justify-center items-center text-white transition-opacity duration-300">
     <div class="text-7xl animate-spin-slow drop-shadow-2xl mb-4">❄️</div>
     <div class="text-xl font-bold tracking-widest uppercase animate-pulse" data-i18n="loading_ai">ИИ ДУМАЕТ...</div>
 </div>
 
 <!-- ================= ОСНОВНОЙ КОНТЕНТ САЙТА ================= -->
-<div class="max-w-6xl mx-auto space-y-6 pb-20">
+<div class="max-w-6xl mx-auto space-y-6 pb-32">
 
-    <!-- БЛОК 1: Главная шапка (Логотип, Инструкция, Выбор языка и роли) -->
+    <!-- Главная шапка -->
     <header class="bg-white rounded-2xl shadow-sm p-6 flex flex-col lg:flex-row justify-between items-center gap-4 border-t-4 border-blue-500">
         <div>
             <h1 class="text-3xl font-black text-blue-600 flex items-center gap-2" data-i18n="title">❄️ Умный холодильник</h1>
@@ -100,7 +98,7 @@
         </div>
     </header>
 
-    <!-- БЛОК 2: Панель Администратора (Настройка прав) -->
+    <!-- Панель Администратора -->
     <section id="rights-panel" class="hidden bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
         <h2 class="text-lg font-bold text-slate-700 mb-4" data-i18n="rights_title">⚙️ Делегирование прав</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -117,7 +115,7 @@
         </div>
     </section>
 
-    <!-- БЛОК 3: Статистика потребления и управление CSV -->
+    <!-- Статистика и CSV -->
     <section id="analytics-panel" class="bg-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
         <div class="flex-1">
             <div class="flex items-center gap-4 mb-2"><h2 class="text-lg font-bold text-slate-700" data-i18n="stats_title">📊 Общая статистика</h2></div>
@@ -134,7 +132,7 @@
         </div>
     </section>
 
-    <!-- БЛОК 4: AI-Шеф и Снабженец (Связь с нейросетью) -->
+    <!-- AI CHEF Панель -->
     <section id="ai-chef-panel" class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 shadow-sm">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-indigo-100/50 pb-4 mb-4">
             <div>
@@ -156,23 +154,21 @@
             </div>
         </div>
 
-        <!-- Контейнер для отображения ответа от нейросети -->
         <div id="ai-response-box" class="hidden mt-4 bg-white rounded-xl p-5 text-sm text-slate-700 border border-blue-100 max-h-96 overflow-y-auto shadow-inner leading-relaxed"></div>
     </section>
 
-    <!-- БЛОК 5: Корзина (Список покупок) -->
+    <!-- Корзина -->
     <section class="bg-gradient-to-br from-indigo-50 to-white rounded-2xl p-6 shadow-sm border border-indigo-100">
         <h2 class="text-xl font-black text-indigo-900 mb-4 flex items-center gap-2" data-i18n="cart_title">🛒 Список покупок</h2>
         <div id="cart-items-container" class="space-y-2 flex flex-col gap-1"></div>
     </section>
 
-    <!-- БЛОК 6: Форма ручного добавления продукта на полку -->
+    <!-- Форма добавления продукта -->
     <section id="add-form-panel" class="bg-white rounded-2xl shadow-md border-t-4 border-green-500 overflow-hidden">
         <div class="p-6">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2" data-i18n="add_title">➕ Добавить на полку</h2>
                 <div class="flex gap-3">
-                    <!-- Запуск Турбо-Сканера -->
                     <button id="btn-scan-barcode" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-black transition flex items-center gap-2 shadow-md" data-i18n="scan_btn">📷 Скан штрих-кода</button>
                 </div>
             </div>
@@ -223,7 +219,6 @@
                 <div><button id="btn-add" class="w-full bg-green-500 hover:bg-green-600 text-white font-black text-lg py-3 px-4 rounded-xl transition shadow-lg" data-i18n="add_btn">➕ В холодильник</button></div>
             </div>
 
-            <!-- Расширенные поля (Цена, Валюта, Заметки) -->
             <div id="advanced-settings" class="hidden mt-6 pt-6 border-t border-slate-200">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
@@ -231,7 +226,6 @@
                         <div class="flex gap-2">
                             <input type="number" id="p-price" data-i18n-placeholder="price_ph" class="flex-1 bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none">
                             <select id="p-currency" class="bg-slate-50 border border-slate-200 rounded-lg p-2.5 outline-none font-bold text-slate-600">
-                                <!-- Поддержка мультивалютности -->
                                 <option value="RUB">₽</option><option value="ILS">₪</option><option value="USD">$</option><option value="EUR">€</option>
                             </select>
                         </div>
@@ -248,16 +242,16 @@
         </div>
     </section>
 
-    <!-- БЛОК 7: Отрисовка списка продуктов из Firebase -->
+    <!-- Полки холодильника -->
     <section class="bg-white rounded-2xl p-6 shadow-sm">
         <h2 class="text-2xl font-black text-slate-800 mb-6 border-b pb-4" data-i18n="shelves_title">🧊 Содержимое полок</h2>
         <div id="fridge-shelves" class="space-y-4"></div>
     </section>
 </div>
 
-<!-- ================= МОДАЛЬНЫЕ ОКНА И УВЕДОМЛЕНИЯ ================= -->
+<!-- ================= СКРЫТЫЕ ОКНА (МОДАЛКИ) ================= -->
 
-<!-- БЛОК: Модалка настроек API ключа (Защищенная) -->
+<!-- Окно настроек API -->
 <div id="api-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[90] flex justify-center items-center p-4 transition-opacity">
     <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 relative">
         <button id="btn-close-api" class="absolute top-4 right-5 text-slate-400 hover:text-slate-600 transition text-3xl font-bold">&times;</button>
@@ -268,12 +262,13 @@
     </div>
 </div>
 
-<!-- БЛОК: Модалка расширенной Инструкции (С прокруткой для телефона) -->
+<!-- Окно Инструкции (С прокруткой для телефона) -->
 <div id="instruction-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[80] flex justify-center items-center p-4 transition-opacity">
     <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-8 relative">
         <button id="btn-close-instruction" class="absolute top-4 right-5 text-slate-400 hover:text-slate-600 transition text-3xl font-bold">&times;</button>
         <h2 class="text-2xl font-black text-slate-800 mb-4 flex items-center gap-2" data-i18n="welcome_title">👋 Добро пожаловать!</h2>
 
+        <!-- Обертка со скроллом для 7 шагов -->
         <div class="text-sm text-slate-600 mb-6 leading-relaxed max-h-[60vh] overflow-y-auto pr-2">
             <div data-i18n="step_1"></div>
             <div data-i18n="step_2"></div>
@@ -288,13 +283,21 @@
     </div>
 </div>
 
-<!-- БЛОК: Баннер установки PWA для пользователей Apple iPhone (iOS) -->
-<div id="ios-install-banner" class="hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 shadow-[0_-5px_15px_rgba(0,0,0,0.1)] z-[5000] flex justify-between items-center gap-4">
-    <div class="text-sm font-medium text-slate-700" data-i18n="ios_install">🍎 <b>Apple запрещает прямую установку.</b><br>Чтобы скачать приложение, найдите в браузере значок <b>Поделиться</b> (квадрат со стрелочкой ⎋) и выберите <b>«На экран Домой»</b>.</div>
-    <button id="btn-close-ios-banner" class="text-slate-400 hover:text-slate-700 text-3xl font-bold px-2">&times;</button>
+<!-- УНИВЕРСАЛЬНЫЙ БАННЕР УСТАНОВКИ (ДЛЯ ANDROID И IOS) -->
+<div id="pwa-install-banner" class="hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 shadow-[0_-5px_15px_rgba(0,0,0,0.1)] z-[5000] flex-col gap-3">
+    <div class="flex justify-between items-start gap-4">
+        <!-- Текст для Android/Desktop -->
+        <div id="pwa-text-active" class="hidden text-sm font-medium text-slate-700" data-i18n="pwa_banner_text">Установите приложение на телефон для быстрого доступа!</div>
+        <!-- Текст-инструкция для iOS -->
+        <div id="pwa-text-ios" class="hidden text-sm font-medium text-slate-700" data-i18n="ios_install_guide">🍎 <b>Apple запрещает прямую установку.</b><br>Нажмите <b>Поделиться</b> (⎋) внизу экрана и выберите <b>«На экран Домой»</b>.</div>
+
+        <button id="btn-close-pwa-banner" class="text-slate-400 hover:text-slate-700 text-3xl font-bold px-2 leading-none">&times;</button>
+    </div>
+    <!-- Активная кнопка скачивания (только для Android/Desktop) -->
+    <button id="btn-pwa-install" class="hidden w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition shadow-md" data-i18n="pwa_install_btn">📲 Установить</button>
 </div>
 
-<!-- БЛОК: Модалка Сканера штрих-кодов -->
+<!-- Окно Сканера -->
 <div id="scanner-modal" class="hidden fixed inset-0 bg-slate-900/95 backdrop-blur-md z-[60] flex flex-col justify-center items-center p-4 transition-opacity">
     <div id="scanner-container" class="w-full max-w-md bg-white rounded-3xl overflow-hidden flex flex-col relative shadow-2xl transition-all duration-300">
         <div class="p-5 bg-indigo-600 text-white flex justify-between items-center transition-colors duration-300" id="scanner-header"><h3 class="font-bold text-lg flex items-center gap-2" data-i18n="scan_title">📷 Скан штрих-кода</h3><button id="btn-close-scanner" class="text-white hover:text-indigo-200 text-4xl leading-none font-light">&times;</button></div>
@@ -303,7 +306,7 @@
     </div>
 </div>
 
-<!-- БЛОК: Окно результата после успешного сканирования (Превью) -->
+<!-- Окно Превью Сканера -->
 <div id="scan-preview-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[70] flex flex-col justify-center items-center p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 relative">
         <h3 class="text-xl font-black text-indigo-600 mb-4 flex items-center gap-2" data-i18n="preview_title">📦 Распознан продукт</h3>
@@ -320,7 +323,7 @@
     </div>
 </div>
 
-<!-- БЛОК: Окно Рейтинга семьи (от 1 до 5 звезд) -->
+<!-- Окно Рейтинга семьи -->
 <div id="rating-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex justify-center items-center p-4 transition-opacity">
     <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 relative text-center">
         <button id="btn-close-rating" class="absolute top-4 right-5 text-slate-400 hover:text-slate-600 transition text-3xl font-bold">&times;</button>
@@ -334,7 +337,6 @@
     </div>
 </div>
 
-<!-- БЛОК: Контейнер для всплывающих уведомлений (Toasts) поверх всех окон (z-[9999]) -->
 <div id="toast-container" class="fixed bottom-4 right-4 z-[9999] flex flex-col gap-3 pointer-events-none"></div>
 
 <!-- Регистрация Service Worker для PWA -->
@@ -343,7 +345,6 @@
         window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>console.log("Локальный запуск")));
     }
 </script>
-<!-- Подключение Главного Контроллера -->
 <script type="module" src="./js/app.js"></script>
 </body>
 </html>
