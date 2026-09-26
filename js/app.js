@@ -47,7 +47,7 @@ userNameInput.addEventListener('input', (e) => localStorage.setItem('smart_fridg
 apiKeyInput.addEventListener('input', (e) => localStorage.setItem('gemini_api_key', e.target.value.trim()));
 
 // ==========================================
-// 1. АВТОРИЗАЦИЯ
+// 1. АВТОРИЗАЦИЯ FIREBASE
 // ==========================================
 onAuthStateChanged(auth, (user) => {
     if (user) {
@@ -63,21 +63,37 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-document.getElementById('btn-auth-login')?.addEventListener('click', async () => {
+document.getElementById('btn-auth-login')?.addEventListener('click', async (e) => {
     const email = document.getElementById('auth-email').value.trim();
     const pass = document.getElementById('auth-pass').value;
     if (!email || !pass) return showToast('Введите email и пароль', 'error');
 
+    const btn = e.target;
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '⏳ Обработка...';
+
     try {
         await signInWithEmailAndPassword(auth, email, pass);
         showToast('Успешный вход!', 'success');
-    } catch (e) {
-        if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
+    } catch (error) {
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-login-credentials') {
             try {
                 await createUserWithEmailAndPassword(auth, email, pass);
                 showToast('Регистрация успешна!', 'success');
-            } catch (err) { showToast('Ошибка регистрации: ' + err.message, 'error'); }
-        } else { showToast('Ошибка входа', 'error'); }
+            } catch (err) {
+                if (err.code === 'auth/email-already-in-use') showToast('Email уже занят', 'error');
+                else if (err.code === 'auth/weak-password') showToast('Пароль слишком простой (минимум 6 символов)', 'error');
+                else showToast('Ошибка регистрации: ' + err.message, 'error');
+            }
+        } else if (error.code === 'auth/operation-not-allowed') {
+            showToast('Включите вход по Email в консоли Firebase!', 'error');
+        } else {
+            showToast('Ошибка: ' + error.message, 'error');
+        }
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
     }
 });
 
@@ -257,6 +273,7 @@ document.getElementById('btn-scan-barcode').addEventListener('click', startBarco
 document.getElementById('btn-preview-next')?.addEventListener('click', () => { previewModal.classList.add('hidden'); startBarcodeScanner(); });
 document.getElementById('btn-preview-fake')?.addEventListener('click', () => { previewModal.classList.add('hidden'); showToast(t('fake_alert'), 'info'); startBarcodeScanner(); });
 
+// ПЕРЕНОС В ФОРМУ (С ПРОКРУТКОЙ)
 document.getElementById('btn-preview-add')?.addEventListener('click', () => {
     previewModal.classList.add('hidden');
     if (scannedProductTemp) {
@@ -267,7 +284,10 @@ document.getElementById('btn-preview-add')?.addEventListener('click', () => {
         }
         const days = guessExpirationDays(scannedProductTemp.name, document.getElementById('p-category').value);
         if (days) document.getElementById('p-days').value = days;
-        document.getElementById('p-count').focus();
+
+        const formPanel = document.getElementById('add-form-panel');
+        if (formPanel) formPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => { document.getElementById('p-count').focus(); }, 500);
     }
 });
 
@@ -306,6 +326,7 @@ async function handleAction(event) {
     const id = btn.dataset.id;
     const action = btn.dataset.action;
 
+    // КОРЗИНА
     if (action === 'cart-remove') { await fridge.removeCartItem(id); playSound('remove'); return updateUI(); }
     if (action === 'cart-buy') {
         const item = fridge.cart.find(c => c.id === id);
@@ -321,6 +342,7 @@ async function handleAction(event) {
         return;
     }
 
+    // ХОЛОДИЛЬНИК
     const batch = fridge.getBatchById(id);
     if (!batch) return;
 
@@ -409,7 +431,6 @@ document.getElementById('input-csv')?.addEventListener('change', (e) => {
     if (e.target.files[0]) { importFromCSV(e.target.files[0], fridge, updateUI); e.target.value = ''; }
 });
 
-// ЕДИНАЯ ФУНКЦИЯ ДЛЯ ЗАПРОСОВ К ИИ (с анимацией снежинки)
 async function executeAiTask(mode) {
     const apiKey = apiKeyInput.value.trim() || localStorage.getItem('gemini_api_key');
     if (!apiKey) return showToast('Введите ключ Gemini в шапке!', 'error');
@@ -421,7 +442,7 @@ async function executeAiTask(mode) {
     responseBox.classList.remove('hidden');
     responseBox.innerHTML = '';
 
-    loaderOverlay.classList.remove('hidden'); // Включаем снежинку
+    loaderOverlay.classList.remove('hidden');
 
     try {
         const recipe = await askGeminiRecipe(apiKey, fridge.getProcessedBatches(), mode, recipeName);
@@ -445,14 +466,14 @@ document.getElementById('btn-ai-supplier')?.addEventListener('click', async (e) 
     const apiKey = apiKeyInput.value.trim() || localStorage.getItem('gemini_api_key');
     if (!apiKey) return showToast('Введите ключ Gemini в шапке!', 'error');
 
-    loaderOverlay.classList.remove('hidden'); // Снежинка
+    loaderOverlay.classList.remove('hidden');
 
     try {
         const missingItems = await askGeminiMissingIngredients(apiKey, recipeName, fridge.getProcessedBatches(), window.appLang);
         if (missingItems && missingItems.length > 0) {
             await Promise.all(missingItems.map(item => fridge.addCartItem(item.name, item.category, item.count, item.unit)));
             playSound('add');
-            showToast(`Добавлено ${missingItems.length} позиций в корзину!`, 'success');
+            showToast(`Добавлено ${missingItems.length} позиций в список покупок!`, 'success');
             updateUI();
             document.getElementById('ai-recipe-input').value = '';
         } else { showToast('В холодильнике есть всё необходимое!', 'info'); }

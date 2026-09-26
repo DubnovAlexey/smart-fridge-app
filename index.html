@@ -29,7 +29,7 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans p-4 md:p-8 relative transition-all duration-300">
 
-<!-- ЭКРАН АВТОРИЗАЦИИ -->
+<!-- ЭКРАН АВТОРИЗАЦИИ (FIREBASE AUTH) -->
 <div id="auth-modal" class="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-[200] flex flex-col justify-center items-center p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 relative">
         <h2 class="text-3xl font-black text-indigo-600 mb-6 flex justify-center items-center gap-2">❄️ <span data-i18n="auth_title">Вход в систему</span></h2>
@@ -43,14 +43,15 @@
     </div>
 </div>
 
+<!-- ОКНО ЗАГРУЗКИ (КРУТЯЩАЯСЯ СНЕЖИНКА ИИ) -->
 <div id="loader-overlay" class="hidden fixed inset-0 bg-blue-900/80 backdrop-blur-md z-[100] flex flex-col justify-center items-center text-white transition-opacity duration-300">
     <div class="text-7xl animate-spin-slow drop-shadow-2xl mb-4">❄️</div>
-    <div class="text-xl font-bold tracking-widest uppercase animate-pulse">ИИ ДУМАЕТ...</div>
+    <div class="text-xl font-bold tracking-widest uppercase animate-pulse" data-i18n="loading_ai">ИИ ДУМАЕТ...</div>
 </div>
 
 <div class="max-w-6xl mx-auto space-y-6">
 
-    <!-- ШАПКА: ТЕПЕРЬ КЛЮЧ API НАХОДИТСЯ ЗДЕСЬ (ДЛЯ ВСЕХ) -->
+    <!-- ШАПКА (С КЛЮЧОМ API) -->
     <header class="bg-white rounded-2xl shadow-sm p-6 flex flex-col lg:flex-row justify-between items-center gap-4 border-t-4 border-blue-500">
         <div>
             <h1 class="text-3xl font-black text-blue-600 flex items-center gap-2" data-i18n="title">❄️ Умный холодильник</h1>
@@ -66,19 +67,15 @@
                     <option value="ru">Русский</option><option value="he">עברית</option><option value="en">English</option><option value="de">Deutsch</option><option value="es">Español</option>
                 </select>
             </div>
-
             <div class="flex flex-wrap items-center gap-2 bg-slate-50 p-2 rounded-2xl border border-slate-200 justify-center">
-                <!-- ИМЯ -->
                 <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl shadow-sm border border-slate-100 w-full sm:w-auto">
                     <span class="text-lg">🧑‍🍳</span>
                     <input type="text" id="user-name-input" data-i18n-placeholder="name_ph" placeholder="Ваше имя" class="bg-transparent border-none outline-none font-bold text-slate-700 w-24 text-sm">
                 </div>
-                <!-- API КЛЮЧ (Скрыт как пароль) -->
                 <div class="flex items-center gap-2 bg-white px-3 py-2 rounded-xl shadow-sm border border-slate-100 w-full sm:w-auto">
                     <span class="text-lg">🔑</span>
                     <input type="password" id="api-key-input" data-i18n-placeholder="api_key_label" placeholder="API Ключ" class="bg-transparent border-none outline-none font-bold text-slate-700 w-28 text-sm" autocomplete="off">
                 </div>
-                <!-- РОЛЬ -->
                 <select id="role-selector" class="bg-white border border-slate-100 shadow-sm rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none cursor-pointer w-full sm:w-auto">
                     <option value="user" data-i18n="role_user">🛡️ Юзер</option><option value="admin" data-i18n="role_admin">🛠️ Админ</option><option value="guest" data-i18n="role_guest">👁️ Гость</option>
                 </select>
@@ -86,7 +83,7 @@
         </div>
     </header>
 
-    <!-- ПРАВА (Только для Админа) -->
+    <!-- ПРАВА ДЕТЕЙ И ГОСТЕЙ -->
     <section id="rights-panel" class="hidden bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
         <h2 class="text-lg font-bold text-slate-700 mb-4" data-i18n="rights_title">⚙️ Делегирование прав</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -179,9 +176,12 @@
                     <div class="w-1/2">
                         <label for="p-unit" class="block text-xs font-semibold text-slate-500 mb-1 uppercase" data-i18n="unit_label">Ед.</label>
                         <select id="p-unit" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none cursor-pointer focus:ring-2 focus:ring-green-500">
-                            <option value="шт" data-i18n="unit_шт">шт</option><option value="кг" data-i18n="unit_кг">кг</option>
-                            <option value="гр" data-i18n="unit_гр">гр</option><option value="л" data-i18n="unit_л">л</option>
-                            <option value="мл" data-i18n="unit_мл">мл</option><option value="упак" data-i18n="unit_упак">упак</option>
+                            <option value="шт" data-i18n="unit_шт">шт</option>
+                            <option value="кг" data-i18n="unit_кг">кг</option>
+                            <option value="гр" data-i18n="unit_гр">гр</option>
+                            <option value="л" data-i18n="unit_л">л</option>
+                            <option value="мл" data-i18n="unit_мл">мл</option>
+                            <option value="упак" data-i18n="unit_упак">упак</option>
                             <option value="порц" data-i18n="unit_порц">порц</option>
                         </select>
                     </div>
@@ -261,14 +261,14 @@
 <div id="instruction-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[80] flex justify-center items-center p-4 transition-opacity">
     <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 relative">
         <button id="btn-close-instruction" class="absolute top-4 right-5 text-slate-400 hover:text-slate-600 transition text-3xl font-bold">&times;</button>
-        <h2 class="text-2xl font-black text-slate-800 mb-4 flex items-center gap-2">👋 Добро пожаловать!</h2>
+        <h2 class="text-2xl font-black text-slate-800 mb-4 flex items-center gap-2" data-i18n="welcome_title">👋 Добро пожаловать!</h2>
         <div class="space-y-3 text-sm text-slate-600 mb-6">
-            <p><b>1. Семья:</b> Укажите свое имя и API-ключ в шапке.</p>
-            <p><b>2. Сканер:</b> Попробуйте отсканировать штрих-код продукта.</p>
-            <p><b>3. AI-Шеф:</b> Не знаете, что приготовить? Нажмите "Из всего, что есть", и нейросеть составит меню.</p>
-            <p><b>4. Звездочки:</b> После съедания блюда программа попросит поставить ему оценку.</p>
+            <p data-i18n="step_1"><b>1. Семья:</b> Укажите свое имя и API-ключ в шапке.</p>
+            <p data-i18n="step_2"><b>2. Сканер:</b> Попробуйте отсканировать штрих-код продукта.</p>
+            <p data-i18n="step_3"><b>3. AI-Шеф:</b> Не знаете, что приготовить? Нажмите "Из всего, что есть", и нейросеть составит меню.</p>
+            <p data-i18n="step_4"><b>4. Звездочки:</b> После съедания блюда программа попросит поставить ему оценку.</p>
         </div>
-        <button id="btn-understand" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-lg py-3 rounded-xl transition shadow-lg">Всё понятно!</button>
+        <button id="btn-understand" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-lg py-3 rounded-xl transition shadow-lg" data-i18n="btn_understand">Всё понятно!</button>
     </div>
 </div>
 
@@ -284,12 +284,12 @@
         <button id="btn-submit-rating" class="w-full bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white font-black text-lg py-3 rounded-xl transition shadow-lg transform hover:-translate-y-0.5">Отправить</button>
     </div>
 </div>
-<div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-3 pointer-events-none"></div>
 
-<!-- Регистрация PWA Service Worker -->
+<div id="toast-container" class="fixed bottom-4 right-4 z-[9999] flex flex-col gap-3 pointer-events-none"></div>
+
 <script>
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>console.log("Локальный запуск без HTTPS")));
+        window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>console.log("Локальный запуск")));
     }
 </script>
 <script type="module" src="./js/app.js"></script>
