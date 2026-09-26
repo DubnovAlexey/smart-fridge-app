@@ -1,18 +1,18 @@
 // ==============================================================================
 // ФАЙЛ: js/utils/aiChef.js
-// НАЗНАЧЕНИЕ: Коммуникация с API нейросети Google Gemini.
+// НАЗНАЧЕНИЕ: Интеграция с API нейросети Google Gemini.
 //
 // ЧТО ДЕЛАЕТ ЭТОТ ФАЙЛ:
-// 1. Формирует текстовые промпты на основе содержимого холодильника.
-// 2. Переводит запросы так, чтобы ИИ отвечал на языке пользователя.
-// 3. Отправляет авторизационный ключ через безопасный заголовок (x-goog-api-key).
-// 4. Заставляет ИИ возвращать строгий JSON формат для Списка покупок.
+// 1. Принимает список продуктов из холодильника и формирует текстовый запрос.
+// 2. Использует рабочую модель "gemini-3-flash-preview" (утверждено в main).
+// 3. Отправляет язык интерфейса (language), чтобы ответ приходил на нужном языке.
+// 4. Форсирует формат JSON для Снабженца (список покупок), чтобы код не ломался.
 // ==============================================================================
 
-// ИСПОЛЬЗУЕМАЯ МОДЕЛЬ (Ваша рабочая модель из домашки)
+// ИСПОЛЬЗУЕМАЯ МОДЕЛЬ
 const AI_MODEL = 'gemini-3-flash-preview';
 
-// Словарь для перевода названий языков, чтобы ИИ понимал, на каком языке писать ответ
+// Словарь для перевода названий языков для промпта нейросети
 const LANG_NAMES = {
     ru: 'русском',
     he: 'иврите',
@@ -21,7 +21,7 @@ const LANG_NAMES = {
     es: 'испанском'
 };
 
-// Функция 1: Запрос рецептов из остатков или для спасения продуктов
+// --- ФУНКЦИЯ 1: Получение рецептов (Из всего / Для спасения / Конкретное) ---
 export async function askGeminiRecipe(apiKey, batches, mode, specificDish = "", language = 'ru') {
     if (!apiKey) throw new Error("API Key is missing");
     let promptText = "";
@@ -42,7 +42,7 @@ export async function askGeminiRecipe(apiKey, batches, mode, specificDish = "", 
     return await fetchGeminiText(apiKey, promptText, false);
 }
 
-// Функция 2: Запрос фактов о продукте после сканирования штрих-кода
+// --- ФУНКЦИЯ 2: Справка о продукте из сканера штрих-кодов ---
 export async function askGeminiProductInfo(apiKey, productName, language = 'ru') {
     if (!apiKey) return "";
     const langName = LANG_NAMES[language] || 'русском';
@@ -58,7 +58,7 @@ export async function askGeminiProductInfo(apiKey, productName, language = 'ru')
     return await fetchGeminiText(apiKey, promptText, false);
 }
 
-// Функция 3: ИИ-Снабженец (Сверка рецепта с холодильником и генерация JSON-корзины)
+// --- ФУНКЦИЯ 3: ИИ-Снабженец (Сверка наличия продуктов) ---
 export async function askGeminiMissingIngredients(apiKey, recipeName, batches, language = 'ru') {
     if (!apiKey) throw new Error("API Key is missing");
 
@@ -73,9 +73,9 @@ export async function askGeminiMissingIngredients(apiKey, recipeName, batches, l
     Названия продуктов переведи на ${langName} язык.`;
 
     try {
-        const response = await fetchGeminiText(apiKey, promptText, true);
+        const response = await fetchGeminiText(apiKey, promptText, true); // true = заставить выдать JSON
 
-        // Очищаем ответ от возможного Markdown (```json ... ```)
+        // Очищаем ответ от Markdown, если ИИ всё-таки решил его добавить
         const cleanJsonStr = response.replace(/```json/gi, '').replace(/```/g, '').trim();
         if (!cleanJsonStr) return [];
 
@@ -86,7 +86,7 @@ export async function askGeminiMissingIngredients(apiKey, recipeName, batches, l
     }
 }
 
-// Функция 4: Базовый сетевой запрос (fetch) к API Google
+// --- ФУНКЦИЯ 4: Главный сетевой запрос ---
 async function fetchGeminiText(apiKey, promptText, forceJson = false) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${AI_MODEL}:generateContent`;
 
@@ -94,7 +94,7 @@ async function fetchGeminiText(apiKey, promptText, forceJson = false) {
         contents: [{ parts: [{ text: promptText }] }]
     };
 
-    // Если нужна строгая структура (для Корзины), включаем защиту от Markdown
+    // Если запрошен JSON (для корзины), включаем защиту
     if (forceJson) {
         body.generationConfig = { responseMimeType: "application/json" };
     }
@@ -103,7 +103,7 @@ async function fetchGeminiText(apiKey, promptText, forceJson = false) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'x-goog-api-key': apiKey // Интегрировано из вашего учебного проекта
+            'x-goog-api-key': apiKey // Передаем ключ в скрытом заголовке (стандарт)
         },
         body: JSON.stringify(body)
     });

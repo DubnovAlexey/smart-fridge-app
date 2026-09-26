@@ -1,9 +1,18 @@
 // ==============================================================================
 // ФАЙЛ: js/utils/translations.js
-// НАЗНАЧЕНИЕ: Словарь для мультиязычности (i18n)
+// НАЗНАЧЕНИЕ: Глобальный словарь для мультиязычности (i18n).
+//
+// ЧТО ДЕЛАЕТ ЭТОТ ФАЙЛ:
+// 1. Хранит переводы всех текстовых элементов интерфейса на 5 языках.
+// 2. Управляет направлением текста (LTR для русского/английского, RTL для иврита).
+// 3. Экспортирует функцию t(), которая безопасно достает нужный перевод,
+//    предотвращая появление ошибки "undefined" (если перевода нет - отдает оригинал).
 // ==============================================================================
 
 export const TRANSLATIONS = {
+    // --------------------------------------------------------------------------
+    // 1. РУССКИЙ ЯЗЫК (Базовый)
+    // --------------------------------------------------------------------------
     ru: {
         dir: 'ltr', title: "❄️ Умный холодильник", how_to: "ℹ️ Инструкция",
         stats_title: "📊 Общая статистика", consumed: "✅ Съедено:", wasted: "🗑 Списано:", lost: "💸 Потери:",
@@ -36,15 +45,20 @@ export const TRANSLATIONS = {
         api_saved: "Ключ сохранен!",
 
         welcome_title: "👋 Добро пожаловать!",
-        step_1: "🧑‍🍳 <b>Семья:</b> Выберите имя для подписи отзывов.",
-        step_2: "📷 <b>Сканер:</b> Наведите на штрих-код продукта.",
-        step_3: "🤖 <b>AI-Шеф:</b> Внесите API-ключ (🔑) и просите рецепты.",
-        step_4: "🛒 <b>Снабженец:</b> ИИ сам найдет, что докупить.",
-        step_5: "⭐ <b>Рейтинг:</b> Оценивайте домашнюю еду.",
+        step_1: "📦 <b>Полки и Сроки:</b> Добавляйте продукты. Система подскажет сроки по ГОСТу.",
+        step_2: "📷 <b>Турбо-сканер:</b> Наведите камеру на штрих-код для поиска продукта в базе.",
+        step_3: "🤖 <b>AI-Шеф:</b> Внесите API-ключ (🔑) в настройках ИИ и просите рецепты.",
+        step_4: "🛒 <b>Снабженец:</b> Введите желаемое блюдо, и ИИ соберет список покупок.",
+        step_5: "👨‍👩‍👧‍👦 <b>Семья и Права:</b> Админ настраивает права для детей и гостей.",
+        step_6: "⭐ <b>Отзывы:</b> Отмечайте галочкой 'Оценить', чтобы ставить блюдам звезды.",
+        step_7: "📊 <b>Статистика:</b> Следите за тратами и выгружайте базу в CSV.",
         btn_understand: "Всё понятно!",
 
         ios_install: "📱 <b>Установите приложение:</b> нажмите ⎋ Поделиться, затем «На экран Домой»."
     },
+    // --------------------------------------------------------------------------
+    // 2. ИВРИТ (RTL - Справа налево)
+    // --------------------------------------------------------------------------
     he: {
         dir: 'rtl', title: "❄️ מקרר חכם", how_to: "ℹ️ הדרכה",
         stats_title: "📊 סטטיסטיקה", consumed: "✅ נצרך:", wasted: "🗑 נזרק:", lost: "💸 הפסד:",
@@ -55,7 +69,7 @@ export const TRANSLATIONS = {
         role_user: "🛡️ משתמש", role_admin: "🛠️ מנהל", role_guest: "👁️ אורח", role_child: "🧒 ילד",
         rights_title: "⚙️ הרשאות", guest_rights: "👤 אורחים", child_rights: "🧒 ילדים", allow_take: "לקחת", allow_waste: "לזרוק",
         cat_dairy: "🥛 חלב", cat_meat: "🥩 בשר", cat_veg: "🍎 ירקות", cat_prepared: "🍲 מוכן", cat_preserves: "🥫 שימורים", cat_alcohol: "🍷 אלכוהול", cat_other: "📦 אחר",
-        unit_шт: "יח'", unit_кг: "ק״ג", unit_гр: "גרם", unit_л: "ליטר", unit_мл: "מ״ל", unit_упак: "אריזה", unit_порц: "מנה",
+        unit_шт: "יח'", unit_кг: "ק״ג", unit_гр: "גרם", unit_л: "ליטר", unit_мл: "מ״ל", unit_упаק: "אריזה", unit_порц: "מנה",
         price_label: "מחיר", comp_label: "רכיבים", note_label: "הערה", perish_label: "⚠️ מתקלקל", frozen_label: "❄️ מקפיא", cooked_label: "⭐ דירוג",
         scan_title: "📷 סורק", scan_wait: "סורק...", scan_code: "קוד", scan_search: "מחפש...", scan_not_found: "לא נמצא",
         what_add_ph: "חלב...", count_ph: "1", days_ph: "ימים", price_ph: "מחיר", comp_ph: "רכיבים...", note_ph: "חנות", name_ph: "שם",
@@ -71,10 +85,19 @@ export const TRANSLATIONS = {
         btn_api_settings: "🔑 מפתח API",
         api_modal_title: "🤖 הגדרות AI", api_modal_desc: "הזן את מפתח ה-Gemini API שלך.", api_modal_btn: "💾 שמור", api_saved: "נשמר!",
         welcome_title: "👋 ברוכים הבאים!",
-        step_1: "🧑‍🍳 <b>משפחה:</b> הזן את שמך.", step_2: "📷 <b>סורק:</b> סרוק ברקוד.", step_3: "🤖 <b>שף AI:</b> הזן מפתח (🔑) ובקש מתכון.", step_4: "🛒 <b>קניות:</b> ה-AI ימצא מה חסר.", step_5: "⭐ <b>דירוג:</b> דרג מאכלים.",
+        step_1: "📦 <b>מדפים:</b> הוסף מוצרים בקלות.",
+        step_2: "📷 <b>סורק טורבו:</b> סרוק ברקודים למידע מהיר.",
+        step_3: "🤖 <b>שף AI:</b> הוסף מפתח (🔑) ובקש מתכונים.",
+        step_4: "🛒 <b>רשימת קניות:</b> ה-AI ימצא מה חסר.",
+        step_5: "👨‍👩‍👧‍👦 <b>משפחה:</b> ניהול הרשאות מלא.",
+        step_6: "⭐ <b>דירוגים:</b> דרג מאכלים 1-5 כוכבים.",
+        step_7: "📊 <b>סטטיסטיקה:</b> עקוב אחר הפסדים ויצא ל-CSV.",
         btn_understand: "הבנתי!",
         ios_install: "📱 <b>התקן את האפליקציה:</b> לחץ על ⎋ שתף, ואז 'למסך הבית'."
     },
+    // --------------------------------------------------------------------------
+    // 3. АНГЛИЙСКИЙ
+    // --------------------------------------------------------------------------
     en: {
         dir: 'ltr', title: "❄️ Smart Fridge", how_to: "ℹ️ Guide",
         stats_title: "📊 Stats", consumed: "✅ Consumed:", wasted: "🗑 Wasted:", lost: "💸 Lost:",
@@ -101,16 +124,27 @@ export const TRANSLATIONS = {
         btn_api_settings: "🔑 AI Key",
         api_modal_title: "🤖 AI Settings", api_modal_desc: "Enter your Gemini API key.", api_modal_btn: "💾 Save", api_saved: "Key saved!",
         welcome_title: "👋 Welcome!",
-        step_1: "🧑‍🍳 <b>Family:</b> Enter your name.", step_2: "📷 <b>Scanner:</b> Scan a barcode.", step_3: "🤖 <b>AI Chef:</b> Add API key (🔑) and get recipes.", step_4: "🛒 <b>Cart:</b> AI finds what to buy.", step_5: "⭐ <b>Rating:</b> Rate meals.",
+        step_1: "📦 <b>Shelves & Dates:</b> Add products. The system suggests expiration dates.",
+        step_2: "📷 <b>Turbo Scanner:</b> Scan barcodes to find ingredients and storage tips.",
+        step_3: "🤖 <b>AI Chef:</b> Add your API key (🔑) to ask the AI for smart recipes.",
+        step_4: "🛒 <b>AI Supplier:</b> Enter a dish name. AI checks your fridge and adds missing items to the Cart.",
+        step_5: "👨‍👩‍👧‍👦 <b>Family & Roles:</b> Admins manage permissions for kids and guests.",
+        step_6: "⭐ <b>Ratings:</b> Mark meals and rate them from 1 to 5 stars after eating.",
+        step_7: "📊 <b>Stats:</b> Track wasted food (financial loss) and export data via CSV.",
         btn_understand: "Got it!",
         ios_install: "📱 <b>Install App:</b> Tap ⎋ Share, then 'Add to Home Screen'."
     },
-    de: { dir: 'ltr', title: "❄️ Kühlschrank", stats_title: "📊 Statistiken", consumed: "✅ Verbr.:", wasted: "🗑 Müll:", lost: "💸 Verl.:", unit_шт: "Stk", unit_кг: "kg", unit_гр: "g", unit_л: "L", unit_мл: "ml", unit_упак: "Pckg", unit_порц: "Port.", btn_export: "📥 Export", btn_import: "📤 Import", btn_preview_add: "✅ Zum Formular", loading_ai: "KI DENKT...", btn_api_settings: "🔑 KI", api_modal_title: "KI-Einstellungen", api_modal_desc: "Gemini API-Schlüssel eingeben.", api_modal_btn: "Speichern", api_saved: "Gespeichert!", welcome_title: "👋 Willkommen!", step_1: "Name eingeben.", step_2: "Barcode scannen.", step_3: "KI-Rezepte testen.", step_4: "Einkaufsliste.", step_5: "Mahlzeiten bewerten.", btn_understand: "Verstanden!", ios_install: "📱 Teilen ⎋ -> 'Zum Home-Bildschirm'." },
-    es: { dir: 'ltr', title: "❄️ Nevera", stats_title: "📊 Estadísticas", consumed: "✅ Cons.:", wasted: "🗑 Basura:", lost: "💸 Perd.:", unit_шт: "ud", unit_кг: "kg", unit_гр: "g", unit_л: "L", unit_мл: "ml", unit_упак: "paq", unit_порц: "porc", btn_export: "📥 Exportar", btn_import: "📤 Importar", btn_preview_add: "✅ Al formulario", loading_ai: "LA IA PIENSA...", btn_api_settings: "🔑 IA", api_modal_title: "Ajustes IA", api_modal_desc: "Clave API Gemini.", api_modal_btn: "Guardar", api_saved: "Guardado", welcome_title: "👋 ¡Bienvenido!", step_1: "Ingresa nombre.", step_2: "Escanea código.", step_3: "Recetas IA.", step_4: "Lista de compras.", step_5: "Valora comidas.", btn_understand: "¡Entendido!", ios_install: "📱 Compartir ⎋ -> 'Añadir a inicio'." }
+    de: { dir: 'ltr', title: "❄️ Kühlschrank", stats_title: "📊 Statistiken", consumed: "✅ Verbr.:", wasted: "🗑 Müll:", lost: "💸 Verl.:", unit_шт: "Stk", unit_кг: "kg", unit_гр: "g", unit_л: "L", unit_мл: "ml", unit_упак: "Pckg", unit_порц: "Port.", btn_export: "📥 Export", btn_import: "📤 Import", btn_preview_add: "✅ Zum Formular", loading_ai: "KI DENKT...", btn_api_settings: "🔑 KI", api_modal_title: "KI-Einstellungen", api_modal_desc: "Gemini API-Schlüssel eingeben.", api_modal_btn: "Speichern", api_saved: "Gespeichert!", welcome_title: "👋 Willkommen!", step_1: "Regale verwalten.", step_2: "Barcode scannen.", step_3: "KI-Rezepte testen.", step_4: "KI-Einkaufsliste.", step_5: "Familienzugang.", step_6: "Mahlzeiten bewerten.", step_7: "Statistiken ansehen.", btn_understand: "Verstanden!", ios_install: "📱 Teilen ⎋ -> 'Zum Home-Bildschirm'." },
+    es: { dir: 'ltr', title: "❄️ Nevera", stats_title: "📊 Estadísticas", consumed: "✅ Cons.:", wasted: "🗑 Basura:", lost: "💸 Perd.:", unit_шт: "ud", unit_кг: "kg", unit_гр: "g", unit_л: "L", unit_мл: "ml", unit_упак: "paq", unit_порц: "porc", btn_export: "📥 Exportar", btn_import: "📤 Importar", btn_preview_add: "✅ Al formulario", loading_ai: "LA IA PIENSA...", btn_api_settings: "🔑 IA", api_modal_title: "Ajustes IA", api_modal_desc: "Clave API Gemini.", api_modal_btn: "Guardar", api_saved: "Guardado", welcome_title: "👋 ¡Bienvenido!", step_1: "Gestionar estantes.", step_2: "Escanear código.", step_3: "Recetas IA.", step_4: "Lista de compras IA.", step_5: "Permisos familiares.", step_6: "Valorar comidas.", step_7: "Ver estadísticas.", btn_understand: "¡Entendido!", ios_install: "📱 Compartir ⎋ -> 'Añadir a inicio'." }
 };
 
-export function t(key) {
+// Функция безопасного извлечения перевода. Защита от undefined.
+export function t(key, defaultText = '') {
     const lang = window.appLang || 'ru';
-    if (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) return TRANSLATIONS[lang][key];
-    return key;
+    // Если перевод существует в базе, возвращаем его
+    if (TRANSLATIONS[lang] && TRANSLATIONS[lang][key] !== undefined) {
+        return TRANSLATIONS[lang][key];
+    }
+    // Если перевода нет (ошибка в словаре), возвращаем дефолтный текст или сам ключ
+    return defaultText || key;
 }

@@ -1,14 +1,14 @@
 <!--
 ==============================================================================
 ФАЙЛ: index.html
-НАЗНАЧЕНИЕ: Главная и единственная страница приложения (Single Page Application).
+НАЗНАЧЕНИЕ: Главная страница приложения (Single Page Application).
 
 ЧТО ДЕЛАЕТ ЭТОТ ФАЙЛ:
-1. Загружает внешние библиотеки (TailwindCSS для дизайна, html5-qrcode для сканера, Flatpickr для календаря).
+1. Загружает TailwindCSS (дизайн), html5-qrcode (сканер), Flatpickr (календарь).
 2. Отрисовывает шапку (выбор языка, имени, роли и кнопку настроек ИИ).
 3. Отрисовывает панели управления (Статистика, Права, AI-Шеф, Корзина).
-4. Отрисовывает форму добавления продуктов и полки холодильника.
-5. Содержит все скрытые модальные окна (Авторизация, Сканер, Инструкция, Оценка), которые вызываются через JavaScript.
+4. Отрисовывает форму добавления продуктов и секцию полок.
+5. Хранит скрытые модальные окна (Авторизация, Сканер, Инструкция из 7 шагов, Настройки API).
 ==============================================================================
 -->
 <!DOCTYPE html>
@@ -18,7 +18,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Умный холодильник 2.0</title>
 
-    <!-- БЛОК: Мета-теги и настройки PWA -->
+    <!-- БЛОК: Мета-теги и настройки PWA для телефона -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>❄️</text></svg>">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4f46e5">
@@ -46,9 +46,9 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans p-4 md:p-8 relative transition-all duration-300">
 
-<!-- ================= СКРЫТЫЕ ЭКРАНЫ ПОВЕРХ САЙТА ================= -->
+<!-- ================= ЭКРАНЫ БЛОКИРОВКИ ПОВЕРХ САЙТА ================= -->
 
-<!-- БЛОК: Модальное окно Авторизации Firebase (Блокирует сайт до входа) -->
+<!-- БЛОК: Окно Авторизации Firebase (Блокирует сайт до входа) -->
 <div id="auth-modal" class="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-[200] flex flex-col justify-center items-center p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 relative">
         <h2 class="text-3xl font-black text-indigo-600 mb-6 flex justify-center items-center gap-2">❄️ <span data-i18n="auth_title">Вход в систему</span></h2>
@@ -62,7 +62,7 @@
     </div>
 </div>
 
-<!-- БЛОК: Экран ожидания ответа от ИИ (Крутящаяся снежинка) -->
+<!-- БЛОК: Экран ожидания ответа от ИИ (Снежинка) -->
 <div id="loader-overlay" class="hidden fixed inset-0 bg-blue-900/80 backdrop-blur-md z-[100] flex flex-col justify-center items-center text-white transition-opacity duration-300">
     <div class="text-7xl animate-spin-slow drop-shadow-2xl mb-4">❄️</div>
     <div class="text-xl font-bold tracking-widest uppercase animate-pulse" data-i18n="loading_ai">ИИ ДУМАЕТ...</div>
@@ -71,7 +71,7 @@
 <!-- ================= ОСНОВНОЙ КОНТЕНТ САЙТА ================= -->
 <div class="max-w-6xl mx-auto space-y-6 pb-20">
 
-    <!-- БЛОК 1: Главная шапка (Логотип, Кнопки меню, Выбор языка и роли) -->
+    <!-- БЛОК 1: Главная шапка (Логотип, Инструкция, Выбор языка и роли) -->
     <header class="bg-white rounded-2xl shadow-sm p-6 flex flex-col lg:flex-row justify-between items-center gap-4 border-t-4 border-blue-500">
         <div>
             <h1 class="text-3xl font-black text-blue-600 flex items-center gap-2" data-i18n="title">❄️ Умный холодильник</h1>
@@ -100,7 +100,7 @@
         </div>
     </header>
 
-    <!-- БЛОК 2: Панель Администратора (Настройка прав детей и гостей) -->
+    <!-- БЛОК 2: Панель Администратора (Настройка прав) -->
     <section id="rights-panel" class="hidden bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
         <h2 class="text-lg font-bold text-slate-700 mb-4" data-i18n="rights_title">⚙️ Делегирование прав</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -117,7 +117,7 @@
         </div>
     </section>
 
-    <!-- БЛОК 3: Статистика потребления и управление базой CSV -->
+    <!-- БЛОК 3: Статистика потребления и управление CSV -->
     <section id="analytics-panel" class="bg-white rounded-2xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
         <div class="flex-1">
             <div class="flex items-center gap-4 mb-2"><h2 class="text-lg font-bold text-slate-700" data-i18n="stats_title">📊 Общая статистика</h2></div>
@@ -156,7 +156,6 @@
             </div>
         </div>
 
-        <!-- Контейнер для отображения ответа от нейросети -->
         <div id="ai-response-box" class="hidden mt-4 bg-white rounded-xl p-5 text-sm text-slate-700 border border-blue-100 max-h-96 overflow-y-auto shadow-inner leading-relaxed"></div>
     </section>
 
@@ -172,7 +171,6 @@
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2" data-i18n="add_title">➕ Добавить на полку</h2>
                 <div class="flex gap-3">
-                    <!-- Запуск Турбо-Сканера -->
                     <button id="btn-scan-barcode" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-black transition flex items-center gap-2 shadow-md" data-i18n="scan_btn">📷 Скан штрих-кода</button>
                 </div>
             </div>
@@ -195,10 +193,13 @@
                     <div class="w-1/2">
                         <label for="p-unit" class="block text-xs font-semibold text-slate-500 mb-1 uppercase" data-i18n="unit_label">Ед.</label>
                         <select id="p-unit" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none cursor-pointer focus:ring-2 focus:ring-green-500">
-                            <!-- Все 7 единиц измерения сохранены -->
-                            <option value="шт" data-i18n="unit_шт">шт</option><option value="кг" data-i18n="unit_кг">кг</option>
-                            <option value="гр" data-i18n="unit_гр">гр</option><option value="л" data-i18n="unit_л">л</option>
-                            <option value="мл" data-i18n="unit_мл">мл</option><option value="упак" data-i18n="unit_упак">упак</option>
+                            <!-- Все 7 единиц измерения -->
+                            <option value="шт" data-i18n="unit_шт">шт</option>
+                            <option value="кг" data-i18n="unit_кг">кг</option>
+                            <option value="гр" data-i18n="unit_гр">гр</option>
+                            <option value="л" data-i18n="unit_л">л</option>
+                            <option value="мл" data-i18n="unit_мл">мл</option>
+                            <option value="упак" data-i18n="unit_упак">упак</option>
                             <option value="порц" data-i18n="unit_порц">порц</option>
                         </select>
                     </div>
@@ -220,7 +221,7 @@
                 <div><button id="btn-add" class="w-full bg-green-500 hover:bg-green-600 text-white font-black text-lg py-3 px-4 rounded-xl transition shadow-lg" data-i18n="add_btn">➕ В холодильник</button></div>
             </div>
 
-            <!-- Расширенные поля (Цена, Валюта, Заметки) -->
+            <!-- Расширенные поля (Цена, Валюта, Состав) -->
             <div id="advanced-settings" class="hidden mt-6 pt-6 border-t border-slate-200">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
@@ -331,7 +332,7 @@
     </div>
 </div>
 
-<!-- БЛОК: Контейнер для всплывающих уведомлений (Toasts) поверх всех окон (z-[9999]) -->
+<!-- БЛОК: Контейнер для всплывающих уведомлений (Toasts) поверх всех окон -->
 <div id="toast-container" class="fixed bottom-4 right-4 z-[9999] flex flex-col gap-3 pointer-events-none"></div>
 
 <!-- Регистрация Service Worker для PWA -->
