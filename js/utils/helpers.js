@@ -8,6 +8,7 @@
 // 3. Генерирует звуки (add/remove) без использования аудиофайлов (AudioContext).
 // 4. Считывает, очищает и заполняет HTML-форму добавления продукта.
 // 5. Обрабатывает логику частичного или полного списания продукта (executeConsumption).
+// 6. Защищает от XSS: экранирует текст и очищает HTML-ответы ИИ (escapeHtml, sanitizeAiHtml).
 // ==============================================================================
 
 // --- 1. ВАЛИДАЦИЯ ДАННЫХ ---
@@ -32,7 +33,7 @@ export function showToast(message, type = 'info') {
     else if (type === 'success') { toast.classList.add('bg-green-500'); icon = '✅'; }
     else { toast.classList.add('bg-blue-600'); }
 
-    toast.innerHTML = `<span class="text-xl">${icon}</span> <span>${message}</span>`;
+    toast.innerHTML = `<span class="text-xl">${icon}</span> <span>${escapeHtml(message)}</span>`;
     container.appendChild(toast);
 
     // Плавное появление
@@ -164,7 +165,50 @@ export async function executeConsumption(batch, amount, fridgeModel, analyticsMo
     }
 }
 
-// Преобразует ответ Gemini (**Жирный Текст**) в HTML (<b>Жирный Текст</b>)
+// Преобразует ответ Gemini (**Жирный Текст**) в HTML (<b>Жирный Текст</b>).
+// Результат вставляется только через sanitizeAiHtml.
 export function formatAiResponse(text) {
-    return text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+    return String(text ?? '').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+}
+
+// --- 6. ЗАЩИТА ОТ XSS ---
+// Название продукта, заметка, отзыв, код со штрихкода и ответ ИИ — чужой текст. Вставленный
+// в innerHTML как есть, текст вида <img src=x onerror=...> выполнится у каждого, кто откроет
+// общий холодильник семьи.
+const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+
+export function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => HTML_ESCAPES[char]);
+}
+
+// ИИ отвечает разметкой по просьбе промпта (<b>, <ul>, <li>), но может повторить вредный текст
+// из названий продуктов. DOMParser строит инертный документ: скрипты не выполняются, картинки
+// не грузятся. Из него переносятся только разрешённые теги без атрибутов, остальное — текстом.
+const AI_ALLOWED_TAGS = new Set(['B', 'STRONG', 'I', 'EM', 'U', 'P', 'BR', 'UL', 'OL', 'LI', 'H3', 'H4']);
+const AI_DROPPED_TAGS = new Set(['SCRIPT', 'STYLE', 'TEMPLATE', 'IFRAME', 'OBJECT', 'NOSCRIPT']);
+
+export function sanitizeAiHtml(html) {
+    const source = new DOMParser().parseFromString(String(html ?? ''), 'text/html').body;
+    const fragment = document.createDocumentFragment();
+
+    const copyChildren = (from, to) => {
+        from.childNodes.forEach((node) => {
+            if (node.nodeType === Node.TEXT_NODE) {
+                to.append(node.textContent);
+            } else if (node.nodeType === Node.ELEMENT_NODE && !AI_DROPPED_TAGS.has(node.tagName)) {
+                if (AI_ALLOWED_TAGS.has(node.tagName)) {
+                    const clean = document.createElement(node.tagName.toLowerCase());
+                    // Прежний вид списков: отступы между пунктами, как в промпте.
+                    if (node.tagName === 'UL' || node.tagName === 'OL') clean.className = 'space-y-1 mt-2';
+                    copyChildren(node, clean);
+                    to.append(clean);
+                } else {
+                    copyChildren(node, to);
+                }
+            }
+        });
+    };
+
+    copyChildren(source, fragment);
+    return fragment;
 }

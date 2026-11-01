@@ -14,7 +14,7 @@
 import { FridgeModel } from './models/Fridge.js';
 import { AnalyticsModel } from './models/Analytics.js';
 import { renderFridgeContents, renderCartContents, renderAnalytics } from './ui/render.js';
-import { showToast, playSound, getFormData, validateProductData, clearAddForm, fillAddForm, executeConsumption, formatAiResponse } from './utils/helpers.js';
+import { showToast, playSound, getFormData, validateProductData, clearAddForm, fillAddForm, executeConsumption, formatAiResponse, escapeHtml, sanitizeAiHtml } from './utils/helpers.js';
 import { askGeminiRecipe, askGeminiProductInfo, askGeminiMissingIngredients } from './utils/aiChef.js';
 import { exportToCSV, importFromCSV } from './utils/csvManager.js';
 import { initScanner } from './utils/barcodeScanner.js';
@@ -351,7 +351,7 @@ const startBarcodeScanner = initScanner((productData) => {
         if (apiKey) {
             aiBox.classList.remove('hidden');
             aiBox.innerHTML = `<div class="flex items-center gap-2"><span class="animate-spin text-xl">⏳</span> <b>${t('preview_ai_loading', 'ИИ думает')}</b></div>`;
-            askGeminiProductInfo(apiKey, productData.name, window.appLang).then(info => aiBox.innerHTML = info).catch(() => aiBox.classList.add('hidden'));
+            askGeminiProductInfo(apiKey, productData.name, window.appLang).then(info => aiBox.replaceChildren(sanitizeAiHtml(info))).catch(() => aiBox.classList.add('hidden'));
         } else { aiBox.classList.add('hidden'); }
 
         previewModal.classList.remove('hidden');
@@ -534,10 +534,10 @@ async function executeAiTask(mode) {
 
     try {
         const recipe = await askGeminiRecipe(apiKey, fridge.getProcessedBatches(), mode, recipeName, window.appLang);
-        responseBox.innerHTML = formatAiResponse(recipe);
+        responseBox.replaceChildren(sanitizeAiHtml(formatAiResponse(recipe)));
     } catch (error) {
         showToast('Ошибка при запросе к ИИ', 'error');
-        responseBox.innerHTML = `<span class="text-red-500 font-bold">Ошибка: ${error.message}</span>`;
+        responseBox.innerHTML = `<span class="text-red-500 font-bold">Ошибка: ${escapeHtml(error.message)}</span>`;
     } finally {
         loaderOverlay.classList.add('hidden');
     }

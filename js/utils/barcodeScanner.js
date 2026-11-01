@@ -3,7 +3,7 @@
 // НАЗНАЧЕНИЕ: Универсальный сканер (Автоматический выбор камеры ПК / Телефон)
 // ==============================================================================
 
-import { showToast } from './helpers.js';
+import { showToast, escapeHtml } from './helpers.js';
 import { t } from './translations.js';
 
 let html5QrCode = null;
@@ -94,7 +94,8 @@ export function initScanner(onSuccessCallback) {
 
             if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
 
-            statusText.innerHTML = `✅ ${t('scan_code')} <b>${decodedText}</b>!<br><span class="text-xs">⏳ ${t('scan_search')}</span>`;
+            // CODE_128 кодирует любые символы ASCII, включая < и >: код показывается только как текст.
+            statusText.innerHTML = `✅ ${t('scan_code')} <b>${escapeHtml(decodedText)}</b>!<br><span class="text-xs">⏳ ${t('scan_search')}</span>`;
             statusText.classList.replace('text-slate-600', 'text-green-600');
             statusText.classList.replace('bg-slate-50', 'bg-green-50');
 
