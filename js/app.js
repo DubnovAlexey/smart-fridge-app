@@ -9,9 +9,11 @@
 // 4. Связывает интерфейс (UI) с базой данных (FridgeModel) и аналитикой.
 // 5. Обрабатывает вызовы к нейросети (Gemini AI) с учетом языка.
 // 6. Управляет системными баннерами установки (PWA) для Android и iOS.
+// 7. Читает настройки через safe prefs; запрет storage не блокирует запуск гостя.
 // ==============================================================================
 
 import { FridgeModel } from './models/Fridge.js';
+import { readPreference, writePreference } from './utils/localStore.js';
 import { AnalyticsModel } from './models/Analytics.js';
 import { renderFridgeContents, renderCartContents, renderAnalytics } from './ui/render.js';
 import { showToast, playSound, getFormData, validateProductData, clearAddForm, fillAddForm, executeConsumption, formatAiResponse, escapeHtml, sanitizeAiHtml } from './utils/helpers.js';
@@ -25,7 +27,6 @@ import { auth } from './firebase.js';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 // --- БАЗОВЫЕ НАСТРОЙКИ ---
-const PASSWORDS = { admin: 'admin2026', user: '1234' };
 const PERMISSIONS = {
     admin: { canAdd: true, canTake: true, canWaste: true },
     user:  { canAdd: true, canTake: true, canWaste: true },
@@ -41,6 +42,7 @@ let editingBatchId = null;
 window.appLang = 'ru';
 let datePicker = null;
 let currentAuthEmail = 'Аноним';
+let localSessionActive = false;
 
 // DOM Элементы
 const roleSelector = document.getElementById('role-selector');
@@ -50,24 +52,27 @@ const authModal = document.getElementById('auth-modal');
 const loaderOverlay = document.getElementById('loader-overlay');
 
 roleSelector.value = currentRole;
-userNameInput.value = localStorage.getItem('smart_fridge_username') || '';
-apiKeyInput.value = localStorage.getItem('gemini_api_key') || '';
+userNameInput.value = readPreference('smart_fridge_username') || '';
+apiKeyInput.value = readPreference('gemini_api_key') || '';
 
-userNameInput.addEventListener('input', (e) => localStorage.setItem('smart_fridge_username', e.target.value.trim()));
+userNameInput.addEventListener('input', (e) => writePreference('smart_fridge_username', e.target.value.trim()));
 
 // ==========================================
 // БЛОК 1: АВТОРИЗАЦИЯ FIREBASE
 // ==========================================
 onAuthStateChanged(auth, (user) => {
     if (user) {
+        localSessionActive = false;
+        fridge.setLocalMode(false); analytics.setLocalMode(false);
         authModal.classList.add('hidden');
         currentAuthEmail = user.email;
         if (!userNameInput.value) {
             userNameInput.value = user.email.split('@')[0];
-            localStorage.setItem('smart_fridge_username', userNameInput.value);
+            writePreference('smart_fridge_username', userNameInput.value);
         }
         initApp();
-    } else {
+    } else if (!localSessionActive) {
+        fridge.setLocalMode(true); analytics.setLocalMode(true);
         authModal.classList.remove('hidden');
     }
 });
@@ -107,6 +112,9 @@ document.getElementById('btn-auth-login')?.addEventListener('click', async (e) =
 });
 
 document.getElementById('btn-auth-guest')?.addEventListener('click', () => {
+    localSessionActive = true;
+    fridge.setLocalMode(true); analytics.setLocalMode(true);
+    currentAuthEmail = 'Локальное демо';
     authModal.classList.add('hidden');
     showToast('Локальный режим активирован', 'info');
     initApp();
@@ -123,8 +131,8 @@ document.getElementById('btn-close-api')?.addEventListener('click', () => {
 });
 document.getElementById('btn-save-api')?.addEventListener('click', () => {
     const val = apiKeyInput.value.trim();
-    localStorage.setItem('gemini_api_key', val);
-    showToast(t('api_saved', 'Ключ сохранен!'), 'success');
+    const persisted = writePreference('gemini_api_key', val);
+    showToast(persisted ? t('api_saved', 'Ключ сохранен!') : 'Ключ доступен только в текущей вкладке: сохранение настроек запрещено браузером.', persisted ? 'success' : 'info');
     document.getElementById('api-modal').classList.add('hidden');
 });
 
@@ -143,7 +151,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
 
-    if (!localStorage.getItem('pwa_banner_closed')) {
+    if (!readPreference('pwa_banner_closed')) {
         pwaBanner.classList.remove('hidden');
         pwaBanner.classList.add('flex');
         pwaTextActive.classList.remove('hidden');
@@ -168,7 +176,7 @@ function checkIosBanner() {
     const isIos = () => /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
     const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
 
-    if (isIos() && !isInStandaloneMode() && !localStorage.getItem('pwa_banner_closed')) {
+    if (isIos() && !isInStandaloneMode() && !readPreference('pwa_banner_closed')) {
         pwaBanner.classList.remove('hidden');
         pwaBanner.classList.add('flex');
         pwaTextIos.classList.remove('hidden');
@@ -178,14 +186,14 @@ function checkIosBanner() {
 btnClosePwa?.addEventListener('click', () => {
     pwaBanner.classList.add('hidden');
     pwaBanner.classList.remove('flex');
-    localStorage.setItem('pwa_banner_closed', 'true');
+    writePreference('pwa_banner_closed', 'true');
 });
 
 // ==========================================
 // БЛОК 4: ЛОКАЛИЗАЦИЯ И КАЛЕНДАРЬ
 // ==========================================
 function applyTranslations(lang) {
-    localStorage.setItem('appLang', lang);
+    writePreference('appLang', lang);
     const dict = TRANSLATIONS[lang];
     if (!dict) return;
 
@@ -237,8 +245,8 @@ function updateUI() {
 // БЛОК 5: РОЛИ И УМНЫЕ СРОКИ ГОДНОСТИ
 // ==========================================
 roleSelector.addEventListener('change', (e) => {
-    if (e.target.value === 'admin' && prompt('Пароль (admin2026):') !== PASSWORDS.admin) {
-        showToast('Доступ запрещен', 'error');
+    if (e.target.value === 'admin' && !fridge.localMode) {
+        showToast('Демонстрация роли администратора доступна в локальном режиме. Облачные права определяются правилами Firebase.', 'error');
         roleSelector.value = currentRole;
         return;
     }
@@ -277,11 +285,11 @@ document.getElementById('p-name').addEventListener('blur', () => {
 // ==========================================
 const modalInstruction = document.getElementById('instruction-modal');
 if (modalInstruction) {
-    const closeInstruction = () => { modalInstruction.classList.add('hidden'); localStorage.setItem('fridge_instruction_seen', 'true'); };
+    const closeInstruction = () => { modalInstruction.classList.add('hidden'); writePreference('fridge_instruction_seen', 'true'); };
     document.getElementById('btn-instruction').addEventListener('click', () => modalInstruction.classList.remove('hidden'));
     document.getElementById('btn-close-instruction')?.addEventListener('click', closeInstruction);
     document.getElementById('btn-understand')?.addEventListener('click', closeInstruction);
-    if (!localStorage.getItem('fridge_instruction_seen')) modalInstruction.classList.remove('hidden');
+    if (!readPreference('fridge_instruction_seen')) modalInstruction.classList.remove('hidden');
 }
 
 const ratingModal = document.getElementById('rating-modal');
@@ -314,7 +322,7 @@ document.getElementById('btn-submit-rating')?.addEventListener('click', async (e
     if (!currentRatingBatch) return;
 
     let author = userNameInput.value.trim() || prompt("Как вас зовут?");
-    if (author) { userNameInput.value = author; localStorage.setItem('smart_fridge_username', author); } else { author = 'Аноним'; }
+    if (author) { userNameInput.value = author; writePreference('smart_fridge_username', author); } else { author = 'Аноним'; }
 
     e.target.disabled = true; e.target.textContent = '⏳ Отправка...';
 
@@ -347,7 +355,7 @@ const startBarcodeScanner = initScanner((productData) => {
         if (productData.ingredients) { document.getElementById('preview-ingredients').textContent = productData.ingredients; ingBox.classList.remove('hidden'); } else { ingBox.classList.add('hidden'); }
 
         const aiBox = document.getElementById('preview-ai-insights');
-        const apiKey = localStorage.getItem('gemini_api_key');
+        const apiKey = readPreference('gemini_api_key');
         if (apiKey) {
             aiBox.classList.remove('hidden');
             aiBox.innerHTML = `<div class="flex items-center gap-2"><span class="animate-spin text-xl">⏳</span> <b>${t('preview_ai_loading', 'ИИ думает')}</b></div>`;
@@ -520,7 +528,7 @@ document.getElementById('input-csv')?.addEventListener('change', (e) => {
 });
 
 async function executeAiTask(mode) {
-    const apiKey = localStorage.getItem('gemini_api_key');
+    const apiKey = readPreference('gemini_api_key');
     if (!apiKey) return showToast('Нажмите на 🔑 AI-Ключ в шапке!', 'error');
 
     const recipeName = document.getElementById('ai-recipe-input').value.trim();
@@ -551,7 +559,7 @@ document.getElementById('btn-ai-supplier')?.addEventListener('click', async (e) 
     const recipeName = document.getElementById('ai-recipe-input').value.trim();
     if (!recipeName) return showToast('Напишите название блюда!', 'error');
 
-    const apiKey = localStorage.getItem('gemini_api_key');
+    const apiKey = readPreference('gemini_api_key');
     if (!apiKey) return showToast('Нажмите на 🔑 AI-Ключ в шапке!', 'error');
 
     loaderOverlay.classList.remove('hidden');
@@ -573,7 +581,7 @@ document.getElementById('btn-ai-supplier')?.addEventListener('click', async (e) 
 // БЛОК 10: СТАРТ ПРИЛОЖЕНИЯ
 // ==========================================
 async function initApp() {
-    window.appLang = localStorage.getItem('appLang') || document.getElementById('lang-selector').value || 'ru';
+    window.appLang = readPreference('appLang') || document.getElementById('lang-selector').value || 'ru';
     document.getElementById('lang-selector').value = window.appLang;
     try {
         await fridge.fetchBatchesFromCloud();
@@ -587,6 +595,4 @@ async function initApp() {
     }
 }
 
-if (!window.firebaseAuthInitialized) {
-    initApp().catch(console.error);
-}
+// Данные загружаются только после выбора локального режима или подтверждённого входа.
