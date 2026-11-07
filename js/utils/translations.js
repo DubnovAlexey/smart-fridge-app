@@ -14,6 +14,7 @@ export const TRANSLATIONS = {
     // 1. РУССКИЙ ЯЗЫК (Базовый)
     // --------------------------------------------------------------------------
     ru: {
+        source_code: "Код на GitHub",
         dir: 'ltr', title: "❄️ Умный холодильник", how_to: "ℹ️ Инструкция",
         stats_title: "📊 Общая статистика", consumed: "✅ Съедено:", wasted: "🗑 Списано:", lost: "💸 Потери:",
         ai_title: "🤖 AI-Шеф", ai_desc: "Идеи рецептов из запасов.", rescue: "🚨 Спасти", all_food: "🥗 Из всего",
@@ -64,6 +65,7 @@ export const TRANSLATIONS = {
     // 2. ИВРИТ (RTL)
     // --------------------------------------------------------------------------
     he: {
+        source_code: "הקוד ב-GitHub",
         dir: 'rtl', title: "❄️ מקרר חכם", how_to: "ℹ️ הדרכה",
         stats_title: "📊 סטטיסטיקה", consumed: "✅ נצרך:", wasted: "🗑 נזרק:", lost: "💸 הפסד:",
         ai_title: "🤖 שף AI", ai_desc: "רעיונות למתכונים.", rescue: "🚨 להציל", all_food: "🥗 מהכל",
@@ -106,6 +108,7 @@ export const TRANSLATIONS = {
     // 3. АНГЛИЙСКИЙ
     // --------------------------------------------------------------------------
     en: {
+        source_code: "Code on GitHub",
         dir: 'ltr', title: "❄️ Smart Fridge", how_to: "ℹ️ Guide",
         stats_title: "📊 Stats", consumed: "✅ Consumed:", wasted: "🗑 Wasted:", lost: "💸 Lost:",
         ai_title: "🤖 AI Chef", ai_desc: "Recipes.", rescue: "🚨 Rescue", all_food: "🥗 All food",
@@ -148,6 +151,7 @@ export const TRANSLATIONS = {
     // 4. НЕМЕЦКИЙ
     // --------------------------------------------------------------------------
     de: {
+        source_code: "Code auf GitHub",
         dir: 'ltr', title: "❄️ Kühlschrank", how_to: "ℹ️ Guide",
         stats_title: "📊 Statistiken", consumed: "✅ Verbr.:", wasted: "🗑 Müll:", lost: "💸 Verl.:", unit_шт: "Stk", unit_кг: "kg", unit_гр: "g", unit_л: "L", unit_мл: "ml", unit_упак: "Pckg", unit_порц: "Port.", btn_export: "📥 Export", btn_import: "📤 Import", btn_preview_add: "✅ Zum Formular", loading_ai: "KI DENKT...", btn_api_settings: "🔑 KI", api_modal_title: "KI-Einstellungen", api_modal_desc: "Gemini API-Schlüssel eingeben.", api_modal_btn: "Speichern", api_saved: "Gespeichert!", welcome_title: "👋 Willkommen!",
         step_1: "<div class='mb-3'><b class='text-indigo-600 text-base'>1️⃣ Familie:</b> Name eingeben.</div>",
@@ -164,6 +168,7 @@ export const TRANSLATIONS = {
     // 5. ИСПАНСКИЙ
     // --------------------------------------------------------------------------
     es: {
+        source_code: "Código en GitHub",
         dir: 'ltr', title: "❄️ Nevera", how_to: "ℹ️ Guía",
         stats_title: "📊 Estadísticas", consumed: "✅ Cons.:", wasted: "🗑 Basura:", lost: "💸 Perd.:", unit_шт: "ud", unit_кг: "kg", unit_гр: "g", unit_л: "L", unit_мл: "ml", unit_упак: "paq", unit_порц: "porc", btn_export: "📥 Exportar", btn_import: "📤 Importar", btn_preview_add: "✅ Al formulario", loading_ai: "LA IA PIENSA...", btn_api_settings: "🔑 IA", api_modal_title: "Ajustes IA", api_modal_desc: "Clave API Gemini.", api_modal_btn: "Guardar", api_saved: "Guardado", welcome_title: "👋 ¡Bienvenido!",
         step_1: "<div class='mb-3'><b class='text-indigo-600 text-base'>1️⃣ Familia:</b> Ingresa nombre.</div>",
