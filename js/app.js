@@ -24,6 +24,8 @@ import { guessExpirationDays } from './utils/gostDB.js';
 import { TRANSLATIONS, t } from './utils/translations.js';
 
 import { auth } from './firebase.js';
+// Firebase приходит модулями с CDN (у проекта нет сборки) — IntelliJ такие адреса не открывает
+// noinspection JSFileReferences
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 // --- БАЗОВЫЕ НАСТРОЙКИ ---
@@ -70,7 +72,7 @@ onAuthStateChanged(auth, (user) => {
             userNameInput.value = user.email.split('@')[0];
             writePreference('smart_fridge_username', userNameInput.value);
         }
-        initApp();
+        initApp().catch(console.error);
     } else if (!localSessionActive) {
         fridge.setLocalMode(true); analytics.setLocalMode(true);
         authModal.classList.remove('hidden');
@@ -117,7 +119,7 @@ document.getElementById('btn-auth-guest')?.addEventListener('click', () => {
     currentAuthEmail = 'Локальное демо';
     authModal.classList.add('hidden');
     showToast('Локальный режим активирован', 'info');
-    initApp();
+    initApp().catch(console.error);
 });
 
 // ==========================================
@@ -215,10 +217,13 @@ function applyTranslations(lang) {
             const key = el.getAttribute('data-i18n-placeholder');
             if (dict[key] !== undefined) {
                 el.placeholder = dict[key];
+                el.setAttribute('aria-label', dict[key]); // подпись для программ чтения с экрана — на языке интерфейса
             }
         });
 
         if (datePicker) datePicker.destroy();
+        // flatpickr подключён с CDN в index.html и живёт в window
+        // noinspection JSUnresolvedReference
         datePicker = flatpickr("#p-date", { dateFormat: "Y-m-d", locale: lang === 'en' ? 'default' : lang });
 
         updateUI();
@@ -331,7 +336,7 @@ document.getElementById('btn-submit-rating')?.addEventListener('click', async (e
         showToast('⭐ Отзыв сохранен!', 'success');
         const batch = currentRatingBatch;
         closeRatingModal();
-        promptAndConsume(batch);
+        promptAndConsume(batch).catch(console.error);
     } catch(error) { showToast('❌ Ошибка', 'error'); }
     finally { e.target.disabled = false; e.target.textContent = t('cooked_label', 'Отправить'); }
 });
@@ -555,7 +560,7 @@ document.getElementById('btn-ask-ai-rescue')?.addEventListener('click', () => ex
 document.getElementById('btn-ask-ai-all')?.addEventListener('click', () => executeAiTask('all'));
 document.getElementById('btn-ai-recipe')?.addEventListener('click', () => executeAiTask('specific'));
 
-document.getElementById('btn-ai-supplier')?.addEventListener('click', async (e) => {
+document.getElementById('btn-ai-supplier')?.addEventListener('click', async () => {
     const recipeName = document.getElementById('ai-recipe-input').value.trim();
     if (!recipeName) return showToast('Напишите название блюда!', 'error');
 
