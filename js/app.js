@@ -20,6 +20,7 @@ import { showToast, playSound, getFormData, validateProductData, clearAddForm, f
 import { askGeminiRecipe, askGeminiProductInfo, askGeminiMissingIngredients } from './utils/aiChef.js';
 import { exportToCSV, importFromCSV } from './utils/csvManager.js';
 import { initScanner } from './utils/barcodeScanner.js';
+import { initHoverZoom } from './ui/hoverZoom.js';
 import { guessExpirationDays } from './utils/gostDB.js';
 import { TRANSLATIONS, t } from './utils/translations.js';
 
@@ -345,6 +346,7 @@ document.getElementById('btn-submit-rating')?.addEventListener('click', async (e
 // БЛОК 7: СКАНЕР ПРОДУКТОВ
 // ==========================================
 const previewModal = document.getElementById('scan-preview-modal');
+initHoverZoom(); // фото распознанного продукта под мышью вырастает в 2,5–3 раза
 let scannedProductTemp = null;
 
 const startBarcodeScanner = initScanner((productData) => {

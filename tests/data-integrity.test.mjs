@@ -105,7 +105,7 @@ async function bootGuestWithDeniedStorage(denial) {
         validateProductData: () => ({valid:true}), clearAddForm() {}, fillAddForm() {}, executeConsumption:cloud,
         formatAiResponse:cloud, escapeHtml:value=>String(value), sanitizeAiHtml:cloud,
         askGeminiRecipe:cloud, askGeminiProductInfo:cloud, askGeminiMissingIngredients:cloud,
-        exportToCSV:cloud, importFromCSV:cloud, initScanner:()=>()=>{}, guessExpirationDays:()=>5,
+        exportToCSV:cloud, importFromCSV:cloud, initScanner:()=>()=>{}, initHoverZoom() {}, guessExpirationDays:()=>5,
         t:(_key,fallback)=>fallback, flatpickr:()=>({destroy(){},clear(){}}), setTimeout:callback=>{timers.push(callback);return timers.length;} });
     const denied = () => { throw new DOMException('Storage is disabled', 'SecurityError'); };
     if (denial === 'getter') Object.defineProperty(context, 'localStorage', {get:denied});
